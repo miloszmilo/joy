@@ -1,0 +1,6 @@
+var x;
+x = 2;
+var y;
+y = 2;
+x = x + y;
+print(x);

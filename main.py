@@ -1,4 +1,8 @@
 def main():
+    """
+    parse command arguments
+    then call the compiler
+    """
     print("Hello from joy!")
 
 
