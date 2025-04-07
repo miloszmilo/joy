@@ -1,6 +1,9 @@
 import os
 from os.path import isdir
+from pathlib import Path
 
+from src.exceptions.FileEmptyError import FileEmptyError
+from src.constants import other
 from src.exceptions.FileWrongTypeError import FileWrongTypeError
 
 
@@ -20,15 +23,14 @@ def create_syntax_tree(source_path: str):
     pass
 
 def read_source_file(source_path: str):
-    if not source_path.endswith('.joy'):
-        print(f'File is not of type JOY, got {source_path.split(".")[-1]}')
-        raise FileWrongTypeError
     if not os.path.exists(source_path):
-        print(f'File not found in path {source_path}')
-        raise FileNotFoundError
+        raise FileNotFoundError(f'File not found in path {source_path}')
     if os.path.isdir(source_path):
-        print(f'File name not found, got directory {source_path}')
-        raise IsADirectoryError
+        raise IsADirectoryError(f'File name not found, got directory {source_path}')
+    if not source_path.endswith(other.SOURCE_CODE_FILE_EXTENSION):
+        raise FileWrongTypeError(f'File is not of type JOY, got {source_path.split(".")[-1]}')
+    if Path(source_path).stat().st_size <= 0:
+        raise FileEmptyError(f'File is empty {source_path}')
 
     source_file: list[str] = []
     try:
