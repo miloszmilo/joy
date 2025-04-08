@@ -1,0 +1,2 @@
+class VariableEmptyName(Exception):
+    pass

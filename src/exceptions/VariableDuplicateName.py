@@ -1,0 +1,2 @@
+class VariableDuplicateName(Exception):
+    pass
