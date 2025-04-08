@@ -1,0 +1,2 @@
+class VariableIllegalName(Exception):
+    pass

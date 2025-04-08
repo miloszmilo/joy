@@ -1,0 +1,2 @@
+class VariableWhitespaceName(Exception):
+    pass
