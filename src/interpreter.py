@@ -98,26 +98,15 @@ def assign_value_to_variable(
         if substring not in rightSide:
             continue
         left, right = rightSide.split(substring, 2)
+        left, right = left.strip(), right.strip()
 
         # Handle variables
+        if left in variables:
+            left = variables[left].value
+        if right in variables:
+            right = variables[right].value
 
-        real_value += arithmetic_function_map[substring](
-            int(left.strip()), int(right.strip())
-        )
-
-    # if rightSide.find(keywords.ADD) != -1:
-    #     # x = 2 + 2 or x = y + 2
-    #     values = [x.strip() for x in rightSide.split(keywords.ADD, 1)]
-    #     if values[0] == "":
-    #         raise ValueError("Used operator without left side, example: x = - 2")
-    #     for v in values:
-    #         if v in variables:
-    #             v = str(variables[v].value)
-    #         parsed_value = int(v.strip())
-    #         if not real_value:
-    #             real_value = parsed_value
-    #             continue
-    #         real_value += parsed_value
+        real_value += arithmetic_function_map[substring](int(left), int(right))
     variables[leftSide].value = real_value
 
 
