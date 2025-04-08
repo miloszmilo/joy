@@ -1,3 +1,4 @@
+from decimal import DivisionByZero
 import pytest
 
 from src.exceptions.FileEmptyError import FileEmptyError
@@ -114,11 +115,17 @@ def test_addition():
     assert result_dict == expected_dict, "should add to variable"
 
 
-def test_single_addition():
-    result_dict = {"variable": Variable(type="int", value=0)}
-    expected_dict = {"variable": Variable(type="int", value=2)}
-    assign_value_to_variable("+ 2", "variable", result_dict)
-    assert result_dict == expected_dict, "should add two to variable"
+def test_addition_with_variable():
+    result_dict = {
+        "variable": Variable(type="int", value=0),
+        "y": Variable(type="int", value=2),
+    }
+    expected_dict = {
+        "variable": Variable(type="int", value=4),
+        "y": Variable(type="int", value=2),
+    }
+    assign_value_to_variable("y + 2", "variable", result_dict)
+    assert result_dict == expected_dict, "should add to variable"
 
 
 def test_subtraction():
@@ -128,8 +135,21 @@ def test_subtraction():
     assert result_dict == expected_dict, "should subtract to variable"
 
 
-def test_single_subtraction():
-    result_dict = {"variable": Variable(type="int", value=0)}
-    expected_dict = {"variable": Variable(type="int", value=-2)}
-    assign_value_to_variable("- 2", "variable", result_dict)
+def test_division():
+    result_dict = {"variable": Variable(type="int", value=4)}
+    expected_dict = {"variable": Variable(type="int", value=1 / 2)}
+    assign_value_to_variable("2 / 4", "variable", result_dict)
+    assert result_dict == expected_dict, "should divide to variable"
+
+
+def test_negative_division():
+    result_dict = {"variable": Variable(type="int", value=4)}
+    expected_dict = {"variable": Variable(type="int", value=2)}
+    assign_value_to_variable("2 / -2", "variable", result_dict)
     assert result_dict == expected_dict, "should subtract to variable"
+
+
+def test_division_by_zero():
+    result_dict = {"variable": Variable(type="int", value=4)}
+    with pytest.raises(DivisionByZero, match="Cannot divide 0 by zero"):
+        assign_value_to_variable("0 / 0", "variable", result_dict)

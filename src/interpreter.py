@@ -1,3 +1,4 @@
+from decimal import DivisionByZero
 import os
 from os.path import isdir
 from pathlib import Path
@@ -83,48 +84,72 @@ def register_variable(variable_name: str, variables: dict[str, Variable]):
 def assign_value_to_variable(
     rightSide: str, leftSide: str, variables: dict[str, Variable]
 ):
-    # Whatever is in the value assignment, evaluate that
-    real_value: int | float = 0
+    # Divide always to 2 parts
+    # if real_value == 0:
+    #   real_value = int(v)
+    # if real_value != 0:
+    # real_value -= int(v)
+    # basically first assign left side of the right side
+    # to real_value, then make the +, -, /, %, * on it
+    # with the right side
+    real_value = 0
     rightSide = rightSide.strip()
-    if rightSide.find(keywords.ADDITION) != -1:
-        # x = 2 + 2 or x = y + 2
-        # Remove any empty strings from split
-        values = filter(None, rightSide.split(keywords.ADDITION))
-        for v in values:
-            v = v.strip()
-            if v in variables.keys():
-                real_value += int(variables[v])
-                continue
-            real_value += int(v)
-    if rightSide.find(keywords.SUBTRACTION) != -1:
-        # x = 2 - 2 or x = y - 2
-        values = filter(None, rightSide.split(keywords.SUBTRACTION))
-        print(values)
-        for v in values:
-            v = v.strip()
-            if v in variables.keys():
-                real_value -= int(variables[v])
-                continue
-            real_value -= int(v)
-    if rightSide.find(keywords.DIVIDE) != -1:
-        # x = 2 / 2 or x = y / 2
-        values = filter(None, rightSide.split(keywords.DIVIDE))
-        for v in values:
-            v = v.strip()
-            if v in variables.keys():
-                real_value /= int(variables[v])
-                continue
-            real_value /= int(v)
-    if rightSide.find(keywords.MODULO) != -1:
-        # x = 2 % 2 or x = y % 2
-        values = filter(None, rightSide.split(keywords.MODULO))
-        for v in values:
-            v = v.strip()
-            if v in variables.keys():
-                real_value %= int(variables[v])
-                continue
-            real_value %= int(v)
+    for substring in arithmetic_function_map.keys():
+        if substring not in rightSide:
+            continue
+        left, right = rightSide.split(substring, 2)
+
+        # Handle variables
+
+        real_value += arithmetic_function_map[substring](
+            int(left.strip()), int(right.strip())
+        )
+
+    # if rightSide.find(keywords.ADD) != -1:
+    #     # x = 2 + 2 or x = y + 2
+    #     values = [x.strip() for x in rightSide.split(keywords.ADD, 1)]
+    #     if values[0] == "":
+    #         raise ValueError("Used operator without left side, example: x = - 2")
+    #     for v in values:
+    #         if v in variables:
+    #             v = str(variables[v].value)
+    #         parsed_value = int(v.strip())
+    #         if not real_value:
+    #             real_value = parsed_value
+    #             continue
+    #         real_value += parsed_value
     variables[leftSide].value = real_value
+
+
+def add(x: int, y: int):
+    return x + y
+
+
+def subtract(x: int, y: int):
+    return x - y
+
+
+def multiply(x: int, y: int):
+    return x * y
+
+
+def divide(x: int, y: int):
+    if y == 0:
+        raise DivisionByZero(f"Cannot divide {x} by zero")
+    return x / y
+
+
+def modulo(x: int, y: int):
+    return x % y
+
+
+arithmetic_function_map = {
+    "+": add,
+    "-": subtract,
+    "*": multiply,
+    "/": divide,
+    "%": modulo,
+}
 
 
 def convert_syntax_tree_to_byte_code(syntax_tree):
