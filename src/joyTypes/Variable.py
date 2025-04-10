@@ -6,7 +6,7 @@ class Variable:
     value: Type
     type: TypeOfTypes
 
-    def __init__(self, value: Type = None, type: str = None) -> None:
+    def __init__(self, value: Type = None, type: str = "") -> None:
         self.value = value
         self.type = type
 

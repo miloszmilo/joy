@@ -1,6 +1,6 @@
 from decimal import DivisionByZero
 import os
-from os.path import isdir
+from os.path import isdir, exists
 from pathlib import Path
 
 from src.exceptions.VariableDuplicateName import VariableDuplicateName
@@ -41,9 +41,9 @@ def create_syntax_tree(source_path: str):
 
 
 def read_source_file(source_path: str):
-    if not os.path.exists(source_path):
+    if not exists(source_path):
         raise FileNotFoundError(f"File not found in path {source_path}")
-    if os.path.isdir(source_path):
+    if isdir(source_path):
         raise IsADirectoryError(f"File name not found, got directory {source_path}")
     if not source_path.endswith(other.SOURCE_CODE_FILE_EXTENSION):
         raise FileWrongTypeError(
