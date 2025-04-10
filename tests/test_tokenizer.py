@@ -194,10 +194,96 @@ def test_semicol():
     ], "should tokenize ; to semicol"
 
 
-def test_add_two_numbers():
+def test_plus_two_numbers():
     tokenizer = Tokenizer()
     assert tokenizer.to_tokens("2 + 2") == [
         Token("2", "number"),
         Token("+", "plus"),
         Token("2", "number"),
     ], "should tokenize 2 + 2 to 2 number, + plus and 2 number"
+
+
+def test_minus_two_numbers():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("2 - 2") == [
+        Token("2", "number"),
+        Token("-", "minus"),
+        Token("2", "number"),
+    ], "should tokenize 2 - 2 to 2 number, - minus and 2 number"
+
+
+def test_quote():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens('"') == [
+        Token('"', "quote"),
+    ], 'should tokenize " to quote'
+
+
+def test_less_than():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("<") == [
+        Token("<", "less_than"),
+    ], "should tokenize < to less_than"
+
+
+def test_greater_than():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens(">") == [
+        Token(">", "greater_than"),
+    ], "should tokenize > to greater_than"
+
+
+def test_less_than_or_equal():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("<=") == [
+        Token("<=", "less_than_or_equal"),
+    ], "should tokenize <= to less_than_or_equal"
+
+
+def test_greater_than_or_equal():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens(">=") == [
+        Token(">=", "greater_than_or_equal"),
+    ], "should tokenize >= to greater_than_or_equal"
+
+
+def test_equal_to():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("==") == [
+        Token("==", "equal_to"),
+    ], "should tokenize == to equal_to"
+
+
+def test_not_equal_to():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("!=") == [
+        Token("!=", "not_equal_to"),
+    ], "should tokenize != to not_equal_to"
+
+
+def test_lparen():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("(") == [
+        Token("(", "lparen"),
+    ], "should tokenize ( to lparen"
+
+
+def test_rparen():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens(")") == [
+        Token(")", "rparen"),
+    ], "should tokenize ) to rparen"
+
+
+def test_curly_lparen():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("{") == [
+        Token("{", "curly_lparen"),
+    ], "should tokenize { to curly_lparen"
+
+
+def test_curly_rparen():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("}") == [
+        Token("}", "curly_rparen"),
+    ], "should tokenize } to curly_rparen"

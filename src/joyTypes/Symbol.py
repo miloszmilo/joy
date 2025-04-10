@@ -17,6 +17,7 @@ type symbol = (
     | printsym
     | varsym
     | semicol
+    | quote
 )
 
 type number = int  # 3
@@ -37,6 +38,12 @@ type whilesym = str  # while
 type printsym = str  # print
 type varsym = str  # var
 type semicol = str  # ;
+type quote = str  # "
+type less_than = str  # <
+type less_than_or_equal = str  # <=
+type greater_than = str  # >
+type greater_than_or_equal = str  # >=
+type equal_to = str  # ==
 
 
 def is_valid_symbol():

@@ -2,6 +2,32 @@ import re
 from src.exceptions.TokenizerValueError import TokenizerValueError
 from src.joyTypes.Token import Token
 
+tokens = {
+    "=": "equals",
+    "*": "times",
+    "/": "slash",
+    "%": "modulo",
+    "+": "plus",
+    "-": "minus",
+    "if": "ifsym",
+    "else": "elsesym",
+    "while": "whilesym",
+    "var": "varsym",
+    "print": "printsym",
+    ";": "semicol",
+    "(": "lparen",
+    ")": "rparen",
+    "{": "curly_lparen",
+    "}": "curly_rparen",
+    '"': "quote",
+    "<": "less_than",
+    ">": "greater_than",
+    "<=": "less_than_or_equal",
+    ">=": "greater_than_or_equal",
+    "==": "equal_to",
+    "!=": "not_equal_to",
+}
+
 
 class Tokenizer:
     def __init__(self):
@@ -13,35 +39,10 @@ class Tokenizer:
         char: str = string
         if string.find(" ") != -1:
             char = re.split(r"\s+", string, maxsplit=1)[0]
+
         type = ""
-        if char == "=" and not type:
-            type = "equals"
-        if char == "*" and not type:
-            type = "times"
-        if char == "/" and not type:
-            type = "slash"
-        if char == "%" and not type:
-            type = "modulo"
-        if char == "+" and not type:
-            type = "plus"
-        if char == "-" and not type:
-            type = "minus"
-        if char == "if" and not type:
-            type = "ifsym"
-        if char == "else" and not type:
-            type = "elsesym"
-        if char == "while" and not type:
-            type = "whilesym"
-        if char == "var" and not type:
-            type = "varsym"
-        if char == "print" and not type:
-            type = "printsym"
-        if char == ";" and not type:
-            type = "semicol"
-        if char == "(" and not type:
-            type = "lparen"
-        if char == ")" and not type:
-            type = "rparen"
+        if char in tokens:
+            type = tokens[char]
         if char.isnumeric() and not type:
             type = "number"
         if char.find(".") != -1 and not type:
