@@ -1,5 +1,4 @@
 from typing import override
-from src.joyTypes.Symbol import symbol
 
 
 class Token:
@@ -18,4 +17,8 @@ class Token:
 
     @override
     def __str__(self) -> str:
-        return f"Token(token={self.token}, type={self.type})"
+        return f'Token(token="{self.token}", type="{self.type}")'
+
+    @override
+    def __repr__(self) -> str:
+        return self.__str__()

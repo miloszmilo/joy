@@ -287,3 +287,26 @@ def test_curly_rparen():
     assert tokenizer.to_tokens("}") == [
         Token("}", "curly_rparen"),
     ], "should tokenize } to curly_rparen"
+
+
+def test_trailing_whitespace():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens(";      ") == [
+        Token(";", "semicol"),
+    ], "should tokenize ;       to ; as semicol and remove whitespace"
+
+
+def test_number_semicolon():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("2;") == [
+        Token("2", "number"),
+        Token(";", "semicol"),
+    ], "should tokenize 2; to 2 as number, ; as semicol"
+
+
+def test_number_right_parenthesis():
+    tokenizer = Tokenizer()
+    assert tokenizer.to_tokens("2)") == [
+        Token("2", "number"),
+        Token(")", "rparen"),
+    ], "should tokenize 2) to 2 as number, ) as rparen"

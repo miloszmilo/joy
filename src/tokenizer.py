@@ -43,6 +43,9 @@ class Tokenizer:
         type = ""
         if char in tokens:
             type = tokens[char]
+        if ";" in char and not type:
+            char = char[:-1]
+            string = " ;"
         if char.isnumeric() and not type:
             type = "number"
         if char.find(".") != -1 and not type:
@@ -57,9 +60,8 @@ class Tokenizer:
             type = "variable"
         token_list.append(Token(char, type))
 
-        if len(string) == len(char):
+        if len(string) == len(char) and char == string:
             return token_list
         char_length = len(char)
-        print("New string:", string[char_length:])
         token_list += self.to_tokens(string[char_length:])
         return token_list
