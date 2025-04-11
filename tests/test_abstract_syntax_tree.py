@@ -48,9 +48,24 @@ def test_multiple_and_add():
     assert result == expected_result, "should create AST from 2 * 2 + 4"
 
 
+def test_add_and_multiple():
+    result = AbstractSyntaxTree()
+    result.create_from("2 + 2 * 4")
+
+    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
+    root.insert_left_child(NodeAbstractSyntax("2"))
+    root.insert_right_child(NodeAbstractSyntax("*"))
+    root.right_child.insert_left_child(NodeAbstractSyntax("2"))
+    root.right_child.insert_right_child(NodeAbstractSyntax("4"))
+    expected_result = AbstractSyntaxTree(root)
+
+    print("Got result:", result)
+    assert result == expected_result, "should create AST from 2 + 2 * 4"
+
+
 def test_complex_math():
     result = AbstractSyntaxTree()
-    result.create_from("2 * 2 + 2 / 2")
+    result.create_from("2 * 2 + 2 / 2 - 2")
 
     root: NodeAbstractSyntax = NodeAbstractSyntax("+")
     root.insert_left_child(NodeAbstractSyntax("*"))
@@ -65,6 +80,32 @@ def test_complex_math():
     print("Expected:", expected_result)
 
     assert result == expected_result, "should handle complex formulas 2 * 2 + 2 / 2"
+
+
+def test_parenthesis():
+    result = AbstractSyntaxTree()
+    result.create_from("(2 + 2)")
+
+    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
+    root.insert_left_child(NodeAbstractSyntax("2"))
+    root.insert_right_child(NodeAbstractSyntax("2"))
+    expected_result = AbstractSyntaxTree(root)
+
+    print("Got result:", result)
+    assert result == expected_result, "should create AST from (2 + 2)"
+
+
+def test_complex_parenthesis():
+    result = AbstractSyntaxTree()
+    result.create_from("(2 + 2) * 2 / (2 - 2)")
+
+    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
+    root.insert_left_child(NodeAbstractSyntax("2"))
+    root.insert_right_child(NodeAbstractSyntax("2"))
+    expected_result = AbstractSyntaxTree(root)
+
+    print("Got result:", result)
+    assert result == expected_result, "should create AST from (2 + 2)"
 
 
 def test_new_var():

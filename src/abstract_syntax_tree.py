@@ -51,16 +51,8 @@ class AbstractSyntaxTree:
         exp1 = self.expression_stack.pop()
 
         node = NodeAbstractSyntax(operator.token)
-        node.left_child = NodeAbstractSyntax(exp1.value)
-        if exp1.left_child:
-            node.left_child.left_child = exp1.left_child
-        if exp1.right_child:
-            node.left_child.right_child = exp1.right_child
-        node.right_child = NodeAbstractSyntax(exp2.value)
-        if exp2.left_child:
-            node.left_child.left_child = exp2.left_child
-        if exp2.right_child:
-            node.left_child.right_child = exp2.right_child
+        node.left_child = exp1
+        node.right_child = exp2
 
         self.expression_stack.insert(0, node)
 
@@ -91,32 +83,32 @@ class AbstractSyntaxTree:
         #     )
 
         for token in tokens:
-            token_type = token.type
-            if token_type == "number":
+            t_token = token.token
+            if token.type == "number":
                 self.expression_stack.insert(0, NodeAbstractSyntax(token.token))
                 continue
-            if token_type == "lparen":
+            if t_token == "(":
                 self.operator_stack.insert(0, token)
                 continue
-            if token.token in operators:
+            if t_token == ")":
+                while self.operator_stack and self.operator_stack[0] != "(":
+                    self._get_abstract_node_from_stack()
+                _ = self.operator_stack.pop()
+                continue
+            if t_token in operators:
                 if len(self.operator_stack) == 0:
                     self.operator_stack.insert(0, token)
                     continue
 
                 assert self.operator_stack[0].token in priorities_token
-                assert token.token in priorities_token
+                assert t_token in priorities_token
 
                 while self.operator_stack and (
-                    priorities_token[self.operator_stack[0].token]
-                    >= priorities_token[token.token]
+                    priorities_token.get(self.operator_stack[0].token, float("inf"))
+                    >= priorities_token.get(t_token, float("inf"))
                 ):
                     self._get_abstract_node_from_stack()
                 self.operator_stack.insert(0, token)
-                continue
-            if token_type == "rparen":
-                while self.operator_stack[0] != "lparen":
-                    self._get_abstract_node_from_stack()
-                _ = self.operator_stack.pop()
                 continue
             raise SyntaxError(
                 f"Line {code_line} with tokens {tokens} didn't lead to valid AST"
