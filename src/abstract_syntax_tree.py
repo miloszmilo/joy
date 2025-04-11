@@ -62,7 +62,7 @@ class AbstractSyntaxTree:
         if exp2.right_child:
             node.left_child.right_child = exp2.right_child
 
-        self.expression_stack.append(node)
+        self.expression_stack.insert(0, node)
 
     def create_from(self, code_line: str = ""):
         """
@@ -102,7 +102,11 @@ class AbstractSyntaxTree:
                 if len(self.operator_stack) == 0:
                     self.operator_stack.insert(0, token)
                     continue
-                while (
+
+                assert self.operator_stack[0].token in priorities_token
+                assert token.token in priorities_token
+
+                while self.operator_stack and (
                     priorities_token[self.operator_stack[0].token]
                     >= priorities_token[token.token]
                 ):
