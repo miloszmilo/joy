@@ -1,5 +1,4 @@
 from decimal import DivisionByZero
-import os
 from os.path import isdir, exists
 from pathlib import Path
 
@@ -11,7 +10,6 @@ from src.joyTypes.Variable import Variable
 from src.exceptions.FileEmptyError import FileEmptyError
 from src.constants import keywords, other
 from src.exceptions.FileWrongTypeError import FileWrongTypeError
-from src.joyTypes.Types import Type
 
 
 def run(source_path: str, target_path: str = "./output"):
@@ -19,10 +17,6 @@ def run(source_path: str, target_path: str = "./output"):
 
 
 def compile(source_path: str, target_path: str):
-    """
-    first create AST
-    then run line by line
-    """
     syntax_tree = create_syntax_tree(source_path)
     bytecode = convert_syntax_tree_to_byte_code(syntax_tree)
 
@@ -84,14 +78,6 @@ def register_variable(variable_name: str, variables: dict[str, Variable]):
 def assign_value_to_variable(
     rightSide: str, leftSide: str, variables: dict[str, Variable]
 ):
-    # Divide always to 2 parts
-    # if real_value == 0:
-    #   real_value = int(v)
-    # if real_value != 0:
-    # real_value -= int(v)
-    # basically first assign left side of the right side
-    # to real_value, then make the +, -, /, %, * on it
-    # with the right side
     real_value = 0
     rightSide = rightSide.strip()
     for substring in arithmetic_function_map.keys():
