@@ -75,6 +75,6 @@ def test_invalid_expression():
     result = AbstractSyntaxTree()
     expr = "(1 + 2) * 4 -"
 
-    with pytest.raises(ExpressionError, match="expression invalid"):
+    with pytest.raises(ExpressionError, match="Expression invalid"):
         rpn = result._create_rpn_from(expr)
         result = result._solve_rpn(rpn)

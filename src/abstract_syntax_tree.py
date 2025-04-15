@@ -7,11 +7,11 @@ from src.joyTypes.NodeAbstractSyntax import NodeAbstractSyntax
 from src.joyTypes.Token import Token
 
 operators = {
-    "*": 1,
-    "/": 2,
+    "*": 5,
+    "/": 4,
     "%": 3,
-    "+": 4,
-    "-": 5,
+    "+": 2,
+    "-": 1,
 }
 
 
@@ -102,14 +102,14 @@ class AbstractSyntaxTree:
 
             if c == ")":
                 while (
-                    len(holding_stack) != 0
+                    holding_stack
                     and holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
                 ):
                     output_stack.append(holding_stack.popleft())
-                if len(holding_stack) == 0:
+                if not holding_stack:
                     raise ExpressionError("Parenthesis missmatched")
                 if (
-                    len(holding_stack) != 0
+                    holding_stack
                     and holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
                 ):
                     _ = holding_stack.popleft()
@@ -119,48 +119,62 @@ class AbstractSyntaxTree:
                 raise ExpressionError(f"Symbol {c} is not a valid symbol")
 
             while (
-                len(holding_stack) != 0
-                and holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
+                holding_stack and holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
             ):
                 if holding_stack[0].type != SymbolType.OPERATOR:
                     break
-                if operators.get(holding_stack[0].value, 0) <= operators.get(c, 0):
+                if operators.get(holding_stack[0].value, 0) >= operators.get(c, 0):
                     output_stack.append(holding_stack.popleft())
                     continue
                 break
             holding_stack.appendleft(Symbol(c, SymbolType.OPERATOR))
-        while len(holding_stack) != 0:
+        while holding_stack:
             output_stack.append(holding_stack.popleft())
 
         return output_stack
 
-    def _solve_rpn(self, stack: deque[Symbol] = []) -> int:
-        output: deque[int] = deque()
-        result: int = 0
+    def _solve_rpn(self, stack: deque[Symbol]) -> float:
+        output: deque[float] = deque()
+
         for symbol in stack:
-            args = []
-            if symbol.type is SymbolType.NUMBER:
+            args: list[float] = []
+            if symbol.type == SymbolType.NUMBER:
                 output.append(int(symbol.value))
                 continue
-            if symbol.type is SymbolType.OPERATOR:
-                for x in range(symbol.argument_count):
-                    if len(output) < x:
+            if symbol.type == SymbolType.OPERATOR:
+                args = []
+                for _ in range(symbol.argument_count):
+                    if not output:
                         raise ExpressionError(
-                            f"expression invalid, expected {symbol.argument_count} got {len(output)}"
+                            f"Expression invalid, expected {symbol.argument_count} got {len(output)}, left {symbol.argument_count - len(args)} {symbol}"
                         )
                     args.append(output.pop())
-            result = 0
+
+            result: float = 0
             if symbol.argument_count == 2:
-                if symbol.value[0] == "/":
+                if symbol.value == "/":
                     result = args[1] / args[0]
-                if symbol.value[0] == "*":
+                    output.append(result)
+                    continue
+                if symbol.value == "*":
                     result = args[1] * args[0]
-                if symbol.value[0] == "+":
+                    output.append(result)
+                    continue
+                if symbol.value == "+":
                     result = args[1] + args[0]
-                if symbol.value[0] == "-":
+                    output.append(result)
+                    continue
+                if symbol.value == "-":
                     result = args[1] - args[0]
-            output.appendleft(result)
-        return result if result else 0
+                    output.append(result)
+                    continue
+                if symbol.value == "(":
+                    continue
+                raise ExpressionError(f"Unknown operator '{symbol.value}'")
+
+        if len(output) != 1:
+            raise ExpressionError(f"Expression led to no result {output}")
+        return output.popleft()
 
     @override
     def __str__(self) -> str:
@@ -175,3 +189,7 @@ class AbstractSyntaxTree:
                 and self.operator_stack == value.operator_stack
             )
         return False
+
+    @override
+    def __repr__(self) -> str:
+        return f"AbstractSyntaxTree({self.root.__str__()})"
