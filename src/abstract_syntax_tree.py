@@ -1,33 +1,56 @@
+from collections import deque
+from enum import EnumType
 from typing import override
 
+from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.NodeAbstractSyntax import NodeAbstractSyntax
 from src.joyTypes.Token import Token
-from src.tokenizer import Tokenizer
 
-required_tokens = [";", "{", "}"]
-priorities_token = {
-    "=": 1,
-    "if": 1,
-    "while": 1,
-    "else": 1,
-    "print": 1,
-    "(": 2,
-    ")": 2,
-    "var": 2,
-    "==": 3,
-    "!=": 3,
-    "<": 3,
-    ">": 3,
-    "<=": 3,
-    ">=": 3,
-    "*": 4,
-    "/": 4,
-    "%": 4,
-    "+": 5,
+operators = {
+    "*": 1,
+    "/": 2,
+    "%": 3,
+    "+": 4,
     "-": 5,
-    '"': 5,
 }
-operators = ["=", "(", ")", "*", "/", "%", "+", "-"]
+
+
+class SymbolType(EnumType):
+    NUMBER: str = "number"
+    OPERATOR: str = "operator"
+    PARENTHESIS_OPEN: str = "parenthesis_open"
+    PARENTHESIS_CLOSE: str = "parenthesis_close"
+    UNKNOWN: None = None
+
+
+class Symbol:
+    value: str
+    type: str | None
+    argument_count: int
+
+    def __init__(
+        self,
+        value: str = "",
+        type: str | None = SymbolType.UNKNOWN,
+        argument_count: int = 2,
+    ) -> None:
+        self.value = value
+        self.type = type
+        self.argument_count = argument_count
+
+    @override
+    def __eq__(self, value: object, /) -> bool:
+        if isinstance(value, Symbol):
+            return self.value == value.value and self.type == value.type
+        return False
+
+    @override
+    def __str__(self) -> str:
+        return f"{self.value}"
+
+    @override
+    def __repr__(self) -> str:
+        return f"Symbol({self.value}, {self.type}, {self.argument_count})"
 
 
 class AbstractSyntaxTree:
@@ -44,17 +67,6 @@ class AbstractSyntaxTree:
         self.root = root
         self.expression_stack = expression_stack
         self.operator_stack = operator_stack
-
-    def _get_abstract_node_from_stack(self):
-        operator = self.operator_stack.pop()
-        exp2 = self.expression_stack.pop()
-        exp1 = self.expression_stack.pop()
-
-        node = NodeAbstractSyntax(operator.token)
-        node.left_child = exp1
-        node.right_child = exp2
-
-        self.expression_stack.insert(0, node)
 
     def create_from(self, code_line: str = ""):
         """
@@ -75,50 +87,80 @@ class AbstractSyntaxTree:
         Tree Traversal and for number you generate constant
         for operator you do operation, like for + you'd do 'add'
         """
-        tokenizer = Tokenizer()
-        tokens: list[Token] = tokenizer.to_tokens(code_line)
-        # if tokens[-1].token not in required_tokens:
-        #     raise SyntaxError(
-        #         f"Line {code_line} with tokens {tokens} doesn't contain required tokens {required_tokens}"
-        #     )
 
-        for token in tokens:
-            t_token = token.token
-            if token.type == "number":
-                self.expression_stack.insert(0, NodeAbstractSyntax(token.token))
+    def _create_rpn_from(self, code_line: str = "") -> deque[Symbol]:
+        holding_stack: deque[Symbol] = deque()
+        output_stack: deque[Symbol] = deque()
+        for c in code_line.strip().replace(" ", ""):
+            if c.isdigit():
+                output_stack.append(Symbol(c, SymbolType.NUMBER))
                 continue
-            if t_token == "(":
-                self.operator_stack.insert(0, token)
-                continue
-            if t_token == ")":
-                while self.operator_stack and self.operator_stack[0] != "(":
-                    self._get_abstract_node_from_stack()
-                _ = self.operator_stack.pop()
-                continue
-            if t_token in operators:
-                if len(self.operator_stack) == 0:
-                    self.operator_stack.insert(0, token)
-                    continue
 
-                assert self.operator_stack[0].token in priorities_token
-                assert t_token in priorities_token
+            if c == "(":
+                holding_stack.appendleft(Symbol(c, SymbolType.PARENTHESIS_OPEN))
+                continue
 
-                while self.operator_stack and (
-                    priorities_token.get(self.operator_stack[0].token, float("inf"))
-                    >= priorities_token.get(t_token, float("inf"))
+            if c == ")":
+                while (
+                    len(holding_stack) != 0
+                    and holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
                 ):
-                    self._get_abstract_node_from_stack()
-                self.operator_stack.insert(0, token)
+                    output_stack.append(holding_stack.popleft())
+                if len(holding_stack) == 0:
+                    raise ExpressionError("Parenthesis missmatched")
+                if (
+                    len(holding_stack) != 0
+                    and holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
+                ):
+                    _ = holding_stack.popleft()
                 continue
-            raise SyntaxError(
-                f"Line {code_line} with tokens {tokens} didn't lead to valid AST"
-            )
 
-        while self.operator_stack:
-            self._get_abstract_node_from_stack()
+            if c not in operators.keys():
+                raise ExpressionError(f"Symbol {c} is not a valid symbol")
 
-        assert len(self.expression_stack) == 1
-        self.root = self.expression_stack.pop()
+            while (
+                len(holding_stack) != 0
+                and holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
+            ):
+                if holding_stack[0].type != SymbolType.OPERATOR:
+                    break
+                if operators.get(holding_stack[0].value, 0) <= operators.get(c, 0):
+                    output_stack.append(holding_stack.popleft())
+                    continue
+                break
+            holding_stack.appendleft(Symbol(c, SymbolType.OPERATOR))
+        while len(holding_stack) != 0:
+            output_stack.append(holding_stack.popleft())
+
+        return output_stack
+
+    def _solve_rpn(self, stack: deque[Symbol] = []) -> int:
+        output: deque[int] = deque()
+        result: int = 0
+        for symbol in stack:
+            args = []
+            if symbol.type is SymbolType.NUMBER:
+                output.append(int(symbol.value))
+                continue
+            if symbol.type is SymbolType.OPERATOR:
+                for x in range(symbol.argument_count):
+                    if len(output) < x:
+                        raise ExpressionError(
+                            f"expression invalid, expected {symbol.argument_count} got {len(output)}"
+                        )
+                    args.append(output.pop())
+            result = 0
+            if symbol.argument_count == 2:
+                if symbol.value[0] == "/":
+                    result = args[1] / args[0]
+                if symbol.value[0] == "*":
+                    result = args[1] * args[0]
+                if symbol.value[0] == "+":
+                    result = args[1] + args[0]
+                if symbol.value[0] == "-":
+                    result = args[1] - args[0]
+            output.appendleft(result)
+        return result if result else 0
 
     @override
     def __str__(self) -> str:

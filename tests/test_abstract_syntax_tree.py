@@ -1,122 +1,80 @@
+from collections import deque
 import pytest
 
-from src.abstract_syntax_tree import AbstractSyntaxTree
+from src.abstract_syntax_tree import AbstractSyntaxTree, Symbol, SymbolType
+from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.NodeAbstractSyntax import NodeAbstractSyntax
 
 
-def test_no_required_semicolon():
-    ast = AbstractSyntaxTree()
-    with pytest.raises(SyntaxError, match="Line var x = 2"):
-        ast.create_from("var x = 2")
-
-
-def test_simple_addition():
+def test_rpn_notation():
     result = AbstractSyntaxTree()
-    result.create_from("2 + 2")
+    expr = "1 + 2 * 4 - 3"
+    rpn = result._create_rpn_from(expr)
 
-    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
-    root.insert_left_child(NodeAbstractSyntax("2"))
-    root.insert_right_child(NodeAbstractSyntax("2"))
-    expected_result = AbstractSyntaxTree(root)
+    expected_result = deque(
+        [
+            Symbol("1", SymbolType.NUMBER),
+            Symbol("2", SymbolType.NUMBER),
+            Symbol("4", SymbolType.NUMBER),
+            Symbol("*", SymbolType.OPERATOR),
+            Symbol("+", SymbolType.OPERATOR),
+            Symbol("3", SymbolType.NUMBER),
+            Symbol("-", SymbolType.OPERATOR),
+        ]
+    )
 
-    assert result == expected_result, "should create AST from 2 + 2"
+    assert rpn == expected_result, f"should create RPN from {expr}"
 
 
-def test_simple_multiplication():
+def test_simple_add_mul_subtract():
     result = AbstractSyntaxTree()
-    result.create_from("2 * 2")
+    expr = "1 + 2 * 4 - 3"
+    rpn = result._create_rpn_from(expr)
+    result = result._solve_rpn(rpn)
 
-    root: NodeAbstractSyntax = NodeAbstractSyntax("*")
-    root.insert_left_child(NodeAbstractSyntax("2"))
-    root.insert_right_child(NodeAbstractSyntax("2"))
-    expected_result = AbstractSyntaxTree(root)
+    expected_result = 6
 
-    assert result == expected_result, "should create AST from 2 * 2"
+    assert result == expected_result, f"should solve RPN from {expr}"
 
 
-def test_multiple_and_add():
+def test_simple_parenthesis_end():
     result = AbstractSyntaxTree()
-    result.create_from("2 * 2 + 4")
+    expr = "1 + 2 * (4 - 3)"
+    rpn = result._create_rpn_from(expr)
+    result = result._solve_rpn(rpn)
 
-    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
-    root.insert_left_child(NodeAbstractSyntax("*"))
-    root.insert_right_child(NodeAbstractSyntax("4"))
-    root.left_child.insert_left_child(NodeAbstractSyntax("2"))
-    root.left_child.insert_right_child(NodeAbstractSyntax("2"))
-    expected_result = AbstractSyntaxTree(root)
+    expected_result = 3
 
-    assert result == expected_result, "should create AST from 2 * 2 + 4"
+    assert result == expected_result, f"should solve RPN from {expr}"
 
 
-def test_add_and_multiple():
+def test_simple_parenthesis_start():
     result = AbstractSyntaxTree()
-    result.create_from("2 + 2 * 4")
+    expr = "(1 + 2) * 4 - 3"
+    rpn = result._create_rpn_from(expr)
+    result = result._solve_rpn(rpn)
 
-    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
-    root.insert_left_child(NodeAbstractSyntax("2"))
-    root.insert_right_child(NodeAbstractSyntax("*"))
-    root.right_child.insert_left_child(NodeAbstractSyntax("2"))
-    root.right_child.insert_right_child(NodeAbstractSyntax("4"))
-    expected_result = AbstractSyntaxTree(root)
+    expected_result = 9
 
-    print("Got result:", result)
-    assert result == expected_result, "should create AST from 2 + 2 * 4"
+    assert result == expected_result, f"should solve RPN from {expr}"
 
 
-def test_complex_math():
+def test_multiple_parenthesis():
     result = AbstractSyntaxTree()
-    result.create_from("2 * 2 + 2 / 2 - 2")
+    expr = "(1 + 2) * (((4 - 3)-2))"
+    rpn = result._create_rpn_from(expr)
+    result = result._solve_rpn(rpn)
+    print(f"Got rpn {list(rpn)}")
 
-    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
-    root.insert_left_child(NodeAbstractSyntax("*"))
-    root.left_child.insert_left_child(NodeAbstractSyntax("2"))
-    root.left_child.insert_right_child(NodeAbstractSyntax("2"))
-    root.insert_right_child(NodeAbstractSyntax("/"))
-    root.right_child.insert_left_child(NodeAbstractSyntax("2"))
-    root.right_child.insert_right_child(NodeAbstractSyntax("2"))
+    expected_result = -3
 
-    expected_result = AbstractSyntaxTree(root)
-    print("Got result:", result)
-    print("Expected:", expected_result)
-
-    assert result == expected_result, "should handle complex formulas 2 * 2 + 2 / 2"
+    assert result == expected_result, f"should solve RPN from {expr}"
 
 
-def test_parenthesis():
+def test_invalid_expression():
     result = AbstractSyntaxTree()
-    result.create_from("(2 + 2)")
+    expr = "(1 + 2) * 4 -"
 
-    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
-    root.insert_left_child(NodeAbstractSyntax("2"))
-    root.insert_right_child(NodeAbstractSyntax("2"))
-    expected_result = AbstractSyntaxTree(root)
-
-    print("Got result:", result)
-    assert result == expected_result, "should create AST from (2 + 2)"
-
-
-def test_complex_parenthesis():
-    result = AbstractSyntaxTree()
-    result.create_from("(2 + 2) * 2 / (2 - 2)")
-
-    root: NodeAbstractSyntax = NodeAbstractSyntax("+")
-    root.insert_left_child(NodeAbstractSyntax("2"))
-    root.insert_right_child(NodeAbstractSyntax("2"))
-    expected_result = AbstractSyntaxTree(root)
-
-    print("Got result:", result)
-    assert result == expected_result, "should create AST from (2 + 2)"
-
-
-def test_new_var():
-    result = AbstractSyntaxTree()
-    result.create_from("var x = 2;")
-
-    root: NodeAbstractSyntax = NodeAbstractSyntax("=")
-    root.insert_left_child(NodeAbstractSyntax("var"))
-    root.insert_right_child(NodeAbstractSyntax("2"))
-    root.left_child.insert_left_child(NodeAbstractSyntax("x"))
-    root.right_child.insert_right_child(NodeAbstractSyntax(";"))
-    expected_result = AbstractSyntaxTree(root)
-
-    assert result == expected_result, "should handle creating variables"
+    with pytest.raises(ExpressionError, match="expression invalid"):
+        rpn = result._create_rpn_from(expr)
+        result = result._solve_rpn(rpn)
