@@ -13,17 +13,17 @@ def test_rpn_notation():
 
     expected_result = deque(
         [
-            Symbol("1", SymbolType.NUMBER),
-            Symbol("2", SymbolType.NUMBER),
-            Symbol("4", SymbolType.NUMBER),
+            Symbol("1", SymbolType.NUMBER, 0),
+            Symbol("2", SymbolType.NUMBER, 0),
+            Symbol("4", SymbolType.NUMBER, 0),
             Symbol("*", SymbolType.OPERATOR),
             Symbol("+", SymbolType.OPERATOR),
-            Symbol("3", SymbolType.NUMBER),
+            Symbol("3", SymbolType.NUMBER, 0),
             Symbol("-", SymbolType.OPERATOR),
         ]
     )
 
-    assert rpn == expected_result, f"should create RPN from {expr}"
+    assert rpn == expected_result, f"should solve RPN from {expr} to {expected_result}"
 
 
 def test_simple_add_mul_subtract():
@@ -45,7 +45,9 @@ def test_simple_parenthesis_end():
 
     expected_result = 3
 
-    assert result == expected_result, f"should solve RPN from {expr}"
+    assert result == expected_result, (
+        f"should solve RPN from {expr} to {expected_result}"
+    )
 
 
 def test_simple_parenthesis_start():
@@ -56,7 +58,9 @@ def test_simple_parenthesis_start():
 
     expected_result = 9
 
-    assert result == expected_result, f"should solve RPN from {expr}"
+    assert result == expected_result, (
+        f"should solve RPN from {expr} to {expected_result}"
+    )
 
 
 def test_multiple_parenthesis():
@@ -64,11 +68,12 @@ def test_multiple_parenthesis():
     expr = "(1 + 2) * (((4 - 3)-2))"
     rpn = result._create_rpn_from(expr)
     result = result._solve_rpn(rpn)
-    print(f"Got rpn {list(rpn)}")
 
     expected_result = -3
 
-    assert result == expected_result, f"should solve RPN from {expr}"
+    assert result == expected_result, (
+        f"should solve RPN from {expr} to {expected_result}"
+    )
 
 
 def test_invalid_expression():
@@ -78,3 +83,34 @@ def test_invalid_expression():
     with pytest.raises(ExpressionError, match="Expression invalid"):
         rpn = result._create_rpn_from(expr)
         result = result._solve_rpn(rpn)
+
+
+def test_negative_numbers():
+    result = AbstractSyntaxTree()
+    expr = "1 + 2 * - 4 - 3"
+    rpn = result._create_rpn_from(expr)
+
+    expected_rpn = deque(
+        [
+            Symbol("1", SymbolType.NUMBER, 0),
+            Symbol("2", SymbolType.NUMBER, 0),
+            Symbol("4", SymbolType.NUMBER, 0),
+            Symbol("-", SymbolType.OPERATOR, 1),
+            Symbol("*", SymbolType.OPERATOR),
+            Symbol("+", SymbolType.OPERATOR),
+            Symbol("3", SymbolType.NUMBER, 0),
+            Symbol("-", SymbolType.OPERATOR),
+        ]
+    )
+    assert rpn == expected_rpn, f"should screate RPN from {expr} to {expected_rpn}"
+
+    print(rpn)
+    print(expected_rpn)
+
+    result = result._solve_rpn(rpn)
+
+    expected_result = -10
+
+    assert result == expected_result, (
+        f"should solve RPN from {expr} to {expected_result}"
+    )
