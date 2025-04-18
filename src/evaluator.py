@@ -1,9 +1,8 @@
 from collections import deque
 from enum import EnumType
-from typing import override
+from typing import Callable, override
 
 from src.exceptions.ExpressionError import ExpressionError
-from src.joyTypes.NodeAbstractSyntax import NodeAbstractSyntax
 from src.joyTypes.Token import Token
 
 MAX_PRECEDENCE = 100
@@ -33,7 +32,12 @@ class Symbol:
         self.value = value
         self.type = type
         self.argument_count = argument_count
-        self.precedence = precedence if precedence != -1 else operators.get(value, -1)
+        _precedence = precedence
+        if precedence == -1:
+            _precedence = binary_operators.get(value, -1)
+            if isinstance(_precedence, Symbol):
+                _precedence = _precedence.precedence
+        self.precedence = _precedence
 
     @override
     def __eq__(self, value: object, /) -> bool:
@@ -55,35 +59,39 @@ class Symbol:
         return f"Symbol({self.value}, {self.type}, {self.argument_count})"
 
 
-binary_operators = {
-    "*": Symbol("*", SymbolType.OPERATOR, 2, 5),
-    "/": Symbol("/", SymbolType.OPERATOR, 2, 4),
-    "%": Symbol("%", SymbolType.OPERATOR, 2, 3),
-    "+": Symbol("+", SymbolType.OPERATOR, 2, 2),
+binary_operators: dict[str, Symbol] = {
+    "*": Symbol("*", SymbolType.OPERATOR, 2, 2),
+    "/": Symbol("/", SymbolType.OPERATOR, 2, 2),
+    "%": Symbol("%", SymbolType.OPERATOR, 2, 2),
+    "+": Symbol("+", SymbolType.OPERATOR, 2, 1),
     "-": Symbol("-", SymbolType.OPERATOR, 2, 1),
 }
 
-unary_operators = {
+unary_operators: dict[str, Symbol] = {
     "-": Symbol("-", SymbolType.OPERATOR, 1, 100),
     "+": Symbol("+", SymbolType.OPERATOR, 1, 100),
 }
 
-operators = {"*": 5, "/": 4, "%": 3, "+": 2, "-": 1}
 
-
-class AbstractSyntaxTree:
-    root: NodeAbstractSyntax
-    expression_stack: list[NodeAbstractSyntax]
+class Evaluator:
     operator_stack: list[Token]
+
+    operations: dict[str, Callable[[float, float], float]] = {
+        "/": lambda x, y: x / y,
+        "*": lambda x, y: x * y,
+        "+": lambda x, y: x + y,
+        "-": lambda x, y: x - y,
+    }
+
+    unary_operations: dict[str, Callable[[float], float]] = {
+        "+": lambda x: +x,
+        "-": lambda x: -x,
+    }
 
     def __init__(
         self,
-        root: NodeAbstractSyntax = None,
-        expression_stack: list[NodeAbstractSyntax] = [],
         operator_stack: list[Token] = [],
     ):
-        self.root = root
-        self.expression_stack = expression_stack
         self.operator_stack = operator_stack
 
     def _create_rpn_from(self, code_line: str = "") -> deque[Symbol]:
@@ -120,7 +128,7 @@ class AbstractSyntaxTree:
                 previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
                 continue
 
-            if c not in operators.keys():
+            if c not in binary_operators.keys():
                 raise ExpressionError(f"Symbol {c} is not a valid symbol")
 
             new_operator = Symbol(c, SymbolType.OPERATOR, 2)
@@ -182,25 +190,18 @@ class AbstractSyntaxTree:
                     raise ExpressionError(
                         f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
                     )
-                if symbol.value == "/":
-                    result = args[1] / args[0]
-                if symbol.value == "*":
-                    result = args[1] * args[0]
-                if symbol.value == "+":
-                    result = args[1] + args[0]
-                if symbol.value == "-":
-                    result = args[1] - args[0]
                 if symbol.value == "(":
                     continue
+                if symbol.value in self.operations:
+                    result = self.operations[symbol.value](args[1], args[0])
+
             if symbol.argument_count == 1:
                 if symbol.value not in unary_operators.keys():
                     raise ExpressionError(
                         f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
                     )
-                if symbol.value == "+":
-                    result = +args[0]
-                if symbol.value == "-":
-                    result = -args[0]
+                if symbol.value in self.unary_operations:
+                    result = self.unary_operations[symbol.value](args[0])
             output.appendleft(result)
 
         if len(output) != 1:
@@ -209,18 +210,14 @@ class AbstractSyntaxTree:
 
     @override
     def __str__(self) -> str:
-        return self.root.__str__()
+        return f"Evaulator's operator stack: {self.operator_stack}"
 
     @override
     def __eq__(self, value: object, /) -> bool:
-        if isinstance(value, AbstractSyntaxTree):
-            return (
-                self.root == value.root
-                and self.expression_stack == value.expression_stack
-                and self.operator_stack == value.operator_stack
-            )
+        if isinstance(value, Evaluator):
+            return self.operator_stack == value.operator_stack
         return False
 
     @override
     def __repr__(self) -> str:
-        return f"AbstractSyntaxTree({self.root.__str__()})"
+        return f"Evaluator({self.operator_stack})"

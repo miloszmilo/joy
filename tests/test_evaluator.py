@@ -1,9 +1,9 @@
 from collections import deque
 import pytest
 
-from src.abstract_syntax_tree import (
+from src.evaluator import (
     MAX_PRECEDENCE,
-    AbstractSyntaxTree,
+    Evaluator,
     Symbol,
     SymbolType,
 )
@@ -12,7 +12,7 @@ from src.joyTypes.NodeAbstractSyntax import NodeAbstractSyntax
 
 
 def test_rpn_notation():
-    result = AbstractSyntaxTree()
+    result = Evaluator()
     expr = "1 + 2 * 4 - 3"
     rpn = result._create_rpn_from(expr)
 
@@ -32,7 +32,7 @@ def test_rpn_notation():
 
 
 def test_simple_add_mul_subtract():
-    result = AbstractSyntaxTree()
+    result = Evaluator()
     expr = "1 + 2 * 4 - 3"
     rpn = result._create_rpn_from(expr)
     result = result._solve_rpn(rpn)
@@ -43,7 +43,7 @@ def test_simple_add_mul_subtract():
 
 
 def test_simple_parenthesis_end():
-    result = AbstractSyntaxTree()
+    result = Evaluator()
     expr = "1 + 2 * (4 - 3)"
     rpn = result._create_rpn_from(expr)
     result = result._solve_rpn(rpn)
@@ -56,7 +56,7 @@ def test_simple_parenthesis_end():
 
 
 def test_simple_parenthesis_start():
-    result = AbstractSyntaxTree()
+    result = Evaluator()
     expr = "(1 + 2) * 4 - 3"
     rpn = result._create_rpn_from(expr)
     result = result._solve_rpn(rpn)
@@ -69,7 +69,7 @@ def test_simple_parenthesis_start():
 
 
 def test_multiple_parenthesis():
-    result = AbstractSyntaxTree()
+    result = Evaluator()
     expr = "(1 + 2) * (((4 - 3)-2))"
     rpn = result._create_rpn_from(expr)
     result = result._solve_rpn(rpn)
@@ -82,7 +82,7 @@ def test_multiple_parenthesis():
 
 
 def test_invalid_expression():
-    result = AbstractSyntaxTree()
+    result = Evaluator()
     expr = "(1 + 2) * 4 -"
 
     with pytest.raises(ExpressionError, match="Expression invalid"):
@@ -91,7 +91,7 @@ def test_invalid_expression():
 
 
 def test_negative_numbers():
-    result = AbstractSyntaxTree()
+    result = Evaluator()
     expr = "1 + 2 * - 4 - 3"
     rpn = result._create_rpn_from(expr)
 
@@ -119,13 +119,42 @@ def test_negative_numbers():
 
 
 def test_negative_numbers():
-    result = AbstractSyntaxTree()
+    result = Evaluator()
     expr = "-1 + 2 *- 4 - 3"
     rpn = result._create_rpn_from(expr)
+
+    expected_rpn = deque(
+        [
+            Symbol("1", SymbolType.NUMBER, 0),
+            Symbol("-", SymbolType.OPERATOR, 1, MAX_PRECEDENCE),
+            Symbol("2", SymbolType.NUMBER, 0),
+            Symbol("4", SymbolType.NUMBER, 0),
+            Symbol("-", SymbolType.OPERATOR, 1, MAX_PRECEDENCE),
+            Symbol("*", SymbolType.OPERATOR),
+            Symbol("+", SymbolType.OPERATOR),
+            Symbol("3", SymbolType.NUMBER, 0),
+            Symbol("-", SymbolType.OPERATOR),
+        ]
+    )
+    assert rpn == expected_rpn, f"should screate RPN from {expr} to {expected_rpn}"
 
     result = result._solve_rpn(rpn)
 
     expected_result = -12
+
+    assert result == expected_result, (
+        f"should solve RPN from {expr} to {expected_result}"
+    )
+
+
+def test_negative_numbers_complex():
+    result = Evaluator()
+    expr = "-((1 + 2)/((6*-7)+(7*-4)/2)-3)"
+    rpn = result._create_rpn_from(expr)
+
+    result = result._solve_rpn(rpn)
+
+    expected_result = 3.0535714285714284
 
     assert result == expected_result, (
         f"should solve RPN from {expr} to {expected_result}"
