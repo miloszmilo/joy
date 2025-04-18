@@ -117,7 +117,7 @@ class AbstractSyntaxTree:
             if c not in operators.keys():
                 raise ExpressionError(f"Symbol {c} is not a valid symbol")
 
-            new_operator = Symbol(c, SymbolType.OPERATOR, 2, operators.get(c, 0))
+            new_operator = Symbol(c, SymbolType.OPERATOR, 2)
             if (c == "-" or c == "+") and previous_symbol.type not in [
                 SymbolType.NUMBER,
                 SymbolType.PARENTHESIS_CLOSE,
@@ -133,19 +133,14 @@ class AbstractSyntaxTree:
 
                 if holding_stack[0].precedence >= new_operator.precedence:
                     _sym = holding_stack.popleft()
-                    _sym.argument_count = new_operator.argument_count
                     output_stack.append(_sym)
-                    previous_symbol = _sym
-                    print("Saved operator", _sym.__repr__())
-                    print("With argcount", new_operator.argument_count)
-                    print("For prev symbol", previous_symbol)
                     continue
                 break
             _sym = Symbol(
                 c,
                 SymbolType.OPERATOR,
                 new_operator.argument_count,
-                operators.get(c, -1),
+                new_operator.precedence
             )
             holding_stack.appendleft(_sym)
             previous_symbol = _sym
@@ -166,7 +161,6 @@ class AbstractSyntaxTree:
                 args = []
                 for _ in range(symbol.argument_count):
                     if not output:
-                        print("Stack:", stack)
                         raise ExpressionError(
                             f"Expression invalid, expected {symbol.argument_count} got {len(output)}, left {symbol.argument_count - len(args)} {symbol}"
                         )
@@ -198,8 +192,10 @@ class AbstractSyntaxTree:
             if symbol.argument_count == 1:
                 if symbol.value == "+":
                     result = +args[0]
+                    continue
                 if symbol.value == "-":
                     result = -args[0]
+                    continue
                 raise ExpressionError(
                     f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
                 )
