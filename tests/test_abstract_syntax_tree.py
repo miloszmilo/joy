@@ -1,7 +1,12 @@
 from collections import deque
 import pytest
 
-from src.abstract_syntax_tree import MAX_PRECEDENCE, AbstractSyntaxTree, Symbol, SymbolType
+from src.abstract_syntax_tree import (
+    MAX_PRECEDENCE,
+    AbstractSyntaxTree,
+    Symbol,
+    SymbolType,
+)
 from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.NodeAbstractSyntax import NodeAbstractSyntax
 
@@ -107,6 +112,20 @@ def test_negative_numbers():
     result = result._solve_rpn(rpn)
 
     expected_result = -10
+
+    assert result == expected_result, (
+        f"should solve RPN from {expr} to {expected_result}"
+    )
+
+
+def test_negative_numbers():
+    result = AbstractSyntaxTree()
+    expr = "-1 + 2 *- 4 - 3"
+    rpn = result._create_rpn_from(expr)
+
+    result = result._solve_rpn(rpn)
+
+    expected_result = -12
 
     assert result == expected_result, (
         f"should solve RPN from {expr} to {expected_result}"

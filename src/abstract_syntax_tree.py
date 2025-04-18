@@ -55,12 +55,17 @@ class Symbol:
         return f"Symbol({self.value}, {self.type}, {self.argument_count})"
 
 
-new_operators = {
+binary_operators = {
     "*": Symbol("*", SymbolType.OPERATOR, 2, 5),
     "/": Symbol("/", SymbolType.OPERATOR, 2, 4),
     "%": Symbol("%", SymbolType.OPERATOR, 2, 3),
     "+": Symbol("+", SymbolType.OPERATOR, 2, 2),
     "-": Symbol("-", SymbolType.OPERATOR, 2, 1),
+}
+
+unary_operators = {
+    "-": Symbol("-", SymbolType.OPERATOR, 1, 100),
+    "+": Symbol("+", SymbolType.OPERATOR, 1, 100),
 }
 
 operators = {"*": 5, "/": 4, "%": 3, "+": 2, "-": 1}
@@ -86,7 +91,7 @@ class AbstractSyntaxTree:
         output_stack: deque[Symbol] = deque()
         previous_symbol: Symbol = Symbol("0", SymbolType.NUMBER, 0)
 
-        for c in code_line.strip().replace(" ", ""):
+        for i, c in enumerate(code_line.strip().replace(" ", "")):
             if c.isdigit():
                 _sym = Symbol(c, SymbolType.NUMBER, 0)
                 output_stack.append(_sym)
@@ -119,10 +124,14 @@ class AbstractSyntaxTree:
                 raise ExpressionError(f"Symbol {c} is not a valid symbol")
 
             new_operator = Symbol(c, SymbolType.OPERATOR, 2)
-            if (c == "-" or c == "+") and previous_symbol.type not in [
-                SymbolType.NUMBER,
-                SymbolType.PARENTHESIS_CLOSE,
-            ]:
+            if (c == "-" or c == "+") and (
+                previous_symbol.type
+                not in [
+                    SymbolType.NUMBER,
+                    SymbolType.PARENTHESIS_CLOSE,
+                ]
+                or i == 0
+            ):
                 new_operator.precedence = MAX_PRECEDENCE
                 new_operator.argument_count = 1
 
@@ -141,7 +150,7 @@ class AbstractSyntaxTree:
                 c,
                 SymbolType.OPERATOR,
                 new_operator.argument_count,
-                new_operator.precedence
+                new_operator.precedence,
             )
             holding_stack.appendleft(_sym)
             previous_symbol = _sym
@@ -152,7 +161,6 @@ class AbstractSyntaxTree:
 
     def _solve_rpn(self, stack: deque[Symbol]) -> float:
         output: deque[float] = deque()
-
 
         for symbol in stack:
             args: list[float] = []
@@ -170,39 +178,30 @@ class AbstractSyntaxTree:
 
             result: float = 0
             if symbol.argument_count == 2:
+                if symbol.value not in binary_operators:
+                    raise ExpressionError(
+                        f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
+                    )
                 if symbol.value == "/":
                     result = args[1] / args[0]
-                    output.appendleft(result)
-                    continue
                 if symbol.value == "*":
                     result = args[1] * args[0]
-                    output.appendleft(result)
-                    continue
                 if symbol.value == "+":
                     result = args[1] + args[0]
-                    output.appendleft(result)
-                    continue
                 if symbol.value == "-":
                     result = args[1] - args[0]
-                    output.appendleft(result)
-                    continue
                 if symbol.value == "(":
                     continue
-                raise ExpressionError(
-                    f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
-                )
             if symbol.argument_count == 1:
+                if symbol.value not in unary_operators.keys():
+                    raise ExpressionError(
+                        f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
+                    )
                 if symbol.value == "+":
                     result = +args[0]
-                    output.appendleft(result)
-                    continue
                 if symbol.value == "-":
                     result = -args[0]
-                    output.appendleft(result)
-                    continue
-                raise ExpressionError(
-                    f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
-                )
+            output.appendleft(result)
 
         if len(output) != 1:
             raise ExpressionError(f"Expression led to no result {output}")
