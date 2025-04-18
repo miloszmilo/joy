@@ -4,11 +4,9 @@ import pytest
 from src.evaluator import (
     MAX_PRECEDENCE,
     Evaluator,
-    Symbol,
-    SymbolType,
 )
 from src.exceptions.ExpressionError import ExpressionError
-from src.joyTypes.NodeAbstractSyntax import NodeAbstractSyntax
+from src.joyTypes.Symbol import Symbol, SymbolType
 
 
 def test_rpn_notation():
@@ -155,6 +153,18 @@ def test_negative_numbers_complex():
     result = result._solve_rpn(rpn)
 
     expected_result = 3.0535714285714284
+
+    assert result == expected_result, (
+        f"should solve RPN from {expr} to {expected_result}"
+    )
+
+
+def test_evaluate():
+    result = Evaluator()
+    expr = "2+4+6+8-4*3-3*4-1/3*2"
+    result = result.evaluate(expr)
+
+    expected_result = -4.666666666666667
 
     assert result == expected_result, (
         f"should solve RPN from {expr} to {expected_result}"
