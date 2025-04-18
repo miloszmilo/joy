@@ -1,7 +1,7 @@
 from collections import deque
 import pytest
 
-from src.abstract_syntax_tree import AbstractSyntaxTree, Symbol, SymbolType
+from src.abstract_syntax_tree import MAX_PRECEDENCE, AbstractSyntaxTree, Symbol, SymbolType
 from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.NodeAbstractSyntax import NodeAbstractSyntax
 
@@ -95,7 +95,7 @@ def test_negative_numbers():
             Symbol("1", SymbolType.NUMBER, 0),
             Symbol("2", SymbolType.NUMBER, 0),
             Symbol("4", SymbolType.NUMBER, 0),
-            Symbol("-", SymbolType.OPERATOR, 1),
+            Symbol("-", SymbolType.OPERATOR, 1, MAX_PRECEDENCE),
             Symbol("*", SymbolType.OPERATOR),
             Symbol("+", SymbolType.OPERATOR),
             Symbol("3", SymbolType.NUMBER, 0),
@@ -103,9 +103,6 @@ def test_negative_numbers():
         ]
     )
     assert rpn == expected_rpn, f"should screate RPN from {expr} to {expected_rpn}"
-
-    print(rpn)
-    print(expected_rpn)
 
     result = result._solve_rpn(rpn)
 

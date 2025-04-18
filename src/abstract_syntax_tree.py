@@ -42,6 +42,7 @@ class Symbol:
                 self.value == value.value
                 and self.type == value.type
                 and self.argument_count == value.argument_count
+                and self.precedence == value.precedence
             )
         return False
 
@@ -152,10 +153,11 @@ class AbstractSyntaxTree:
     def _solve_rpn(self, stack: deque[Symbol]) -> float:
         output: deque[float] = deque()
 
+
         for symbol in stack:
             args: list[float] = []
             if symbol.type == SymbolType.NUMBER:
-                output.append(int(symbol.value))
+                output.appendleft(int(symbol.value))
                 continue
             if symbol.type == SymbolType.OPERATOR:
                 args = []
@@ -164,25 +166,25 @@ class AbstractSyntaxTree:
                         raise ExpressionError(
                             f"Expression invalid, expected {symbol.argument_count} got {len(output)}, left {symbol.argument_count - len(args)} {symbol}"
                         )
-                    args.append(output.pop())
+                    args.append(output.popleft())
 
             result: float = 0
             if symbol.argument_count == 2:
                 if symbol.value == "/":
                     result = args[1] / args[0]
-                    output.append(result)
+                    output.appendleft(result)
                     continue
                 if symbol.value == "*":
                     result = args[1] * args[0]
-                    output.append(result)
+                    output.appendleft(result)
                     continue
                 if symbol.value == "+":
                     result = args[1] + args[0]
-                    output.append(result)
+                    output.appendleft(result)
                     continue
                 if symbol.value == "-":
                     result = args[1] - args[0]
-                    output.append(result)
+                    output.appendleft(result)
                     continue
                 if symbol.value == "(":
                     continue
@@ -192,9 +194,11 @@ class AbstractSyntaxTree:
             if symbol.argument_count == 1:
                 if symbol.value == "+":
                     result = +args[0]
+                    output.appendleft(result)
                     continue
                 if symbol.value == "-":
                     result = -args[0]
+                    output.appendleft(result)
                     continue
                 raise ExpressionError(
                     f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
