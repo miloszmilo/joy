@@ -1,25 +1,25 @@
-from enum import EnumType
+from enum import Enum
 from typing import override
 
 
-class SymbolType(EnumType):
-    NUMBER: str = "number"
-    OPERATOR: str = "operator"
-    PARENTHESIS_OPEN: str = "parenthesis_open"
-    PARENTHESIS_CLOSE: str = "parenthesis_close"
-    UNKNOWN: None = None
+class SymbolType(Enum):
+    NUMBER = "number"
+    OPERATOR = "operator"
+    PARENTHESIS_OPEN = "parenthesis_open"
+    PARENTHESIS_CLOSE = "parenthesis_close"
+    UNKNOWN = None
 
 
 class Symbol:
     value: str
-    type: str | None
+    type: SymbolType | None
     argument_count: int
     precedence: int
 
     def __init__(
         self,
         value: str = "",
-        type: str | None = SymbolType.UNKNOWN,
+        type: SymbolType | None = SymbolType.UNKNOWN,
         argument_count: int = 2,
         precedence: int = -1,
     ) -> None:

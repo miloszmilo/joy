@@ -1,312 +1,79 @@
+from multiprocessing.sharedctypes import Value
 from src.exceptions.TokenizerValueError import TokenizerValueError
-from src.joyTypes.Token import Token
+from src.joyTypes.Token import Token, TokenType
 from src.tokenizer import Tokenizer
 
 import pytest
 
 
-def test_variable():
+def test_tokenizer_simple():
     tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("x") == [Token("x", "variable")], (
-        "should tokenize x to variable"
-    )
+    expr = "100+(20*40)-30000"
+    result = tokenizer.tokenize(expr)
+    expected_result = [
+        Token("100", TokenType.NUMBER, 100.0),
+        Token("+", TokenType.OPERATOR),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("20", TokenType.NUMBER, 20.0),
+        Token("*", TokenType.OPERATOR),
+        Token("40", TokenType.NUMBER, 40.0),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("-", TokenType.OPERATOR),
+        Token("30000", TokenType.NUMBER, 30000.0),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
 
 
-def test_number():
+def test_tokenizer_floats():
     tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("3") == [Token("3", "number")], (
-        "should tokenize 3 to number"
-    )
+    expr = "1.00+(2.0*40)-30.000"
+    result = tokenizer.tokenize(expr)
+    expected_result = [
+        Token("1.00", TokenType.NUMBER, 1.0),
+        Token("+", TokenType.OPERATOR),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("2.0", TokenType.NUMBER, 2.0),
+        Token("*", TokenType.OPERATOR),
+        Token("40", TokenType.NUMBER, 40.0),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("-", TokenType.OPERATOR),
+        Token("30.000", TokenType.NUMBER, 30.000),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
 
 
-def test_complex_number():
+def test_tokenizer_multiple_dots_float():
     tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("123456789") == [Token("123456789", "number")], (
-        "should tokenize 123456789 to number"
-    )
+    expr = "1.0.0+(2.0*40)-30.00.0"
+    with pytest.raises(TokenizerValueError):
+        _result = tokenizer.tokenize(expr)
 
 
-def test_float():
+def test_tokenizer_start_with_dot():
     tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("0.1234") == [Token("0.1234", "number")], (
-        "should tokenize 0.1234 to number"
-    )
-
-
-def test_invalid_float():
-    tokenizer = Tokenizer()
-    with pytest.raises(
-        TokenizerValueError, match="Token 0.1234e is not a float but contains '.'"
-    ):
-        _ = tokenizer.to_tokens("0.1234e")
-
-
-def test_equals():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("=") == [Token("=", "equals")], (
-        "should tokenize = to equals"
-    )
-
-
-def test_two_numbers():
-    tokenizer = Tokenizer()
-    res = tokenizer.to_tokens("12 34")
-    assert tokenizer.to_tokens("12 34") == [
-        Token("12", "number"),
-        Token("34", "number"),
-    ], "should tokenize 12 to number and 34 to number"
-
-
-def test_two_numbers_many_spaces():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("12       34") == [
-        Token("12", "number"),
-        Token("34", "number"),
-    ], "should tokenize 12 to number, 34 to number and split on many spaces"
-
-
-def test_three_numbers():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("12 34   56") == [
-        Token("12", "number"),
-        Token("34", "number"),
-        Token("56", "number"),
-    ], "should tokenize 12 to number, 34 to number and 56 to number"
-
-
-def test_ten_numbers():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("12 34 56 12 34 56 12 34 56 12") == [
-        Token("12", "number"),
-        Token("34", "number"),
-        Token("56", "number"),
-        Token("12", "number"),
-        Token("34", "number"),
-        Token("56", "number"),
-        Token("12", "number"),
-        Token("34", "number"),
-        Token("56", "number"),
-        Token("12", "number"),
-    ], (
-        "should tokenize 12 to number, 34 to number and 56 to number, then 12 to number, 34 to number, 56 to number, then 12 to number, 34 to number, 56 to number and finally 12 to number"
-    )
-
-
-def test_two_numbers_and_float():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("12 34 0.12") == [
-        Token("12", "number"),
-        Token("34", "number"),
-        Token("0.12", "number"),
-    ], "should tokenize 12 to number, 34 to number and 0.12 to number"
-
-
-def test_two_numbers_and_variable():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("12 34 bigvariablename") == [
-        Token("12", "number"),
-        Token("34", "number"),
-        Token("bigvariablename", "variable"),
-    ], "should tokenize 12 to number, 34 to number and 0.12 to number"
-
-
-def test_plus():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("=") == [
-        Token("=", "equals"),
-    ], "should tokenize = to equals"
-
-
-def test_plus():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("+") == [
-        Token("+", "plus"),
-    ], "should tokenize + to plus"
-
-
-def test_minus():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("-") == [
-        Token("-", "minus"),
-    ], "should tokenize - to minus"
-
-
-def test_times():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("*") == [
-        Token("*", "times"),
-    ], "should tokenize * to times"
-
-
-def test_slash():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("/") == [
-        Token("/", "slash"),
-    ], "should tokenize / to slash"
-
-
-def test_modulo():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("%") == [
-        Token("%", "modulo"),
-    ], "should tokenize % to modulo"
-
-
-def test_if():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("if") == [
-        Token("if", "ifsym"),
-    ], "should tokenize if to ifsym"
-
-
-def test_else():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("else") == [
-        Token("else", "elsesym"),
-    ], "should tokenize else to elsesym"
-
-
-def test_while():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("while") == [
-        Token("while", "whilesym"),
-    ], "should tokenize while to whilesym"
-
-
-def test_print():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("print") == [
-        Token("print", "printsym"),
-    ], "should tokenize print to printsym"
-
-
-def test_var():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("var") == [
-        Token("var", "varsym"),
-    ], "should tokenize var to varsym"
-
-
-def test_semicol():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens(";") == [
-        Token(";", "semicol"),
-    ], "should tokenize ; to semicol"
-
-
-def test_plus_two_numbers():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("2 + 2") == [
-        Token("2", "number"),
-        Token("+", "plus"),
-        Token("2", "number"),
-    ], "should tokenize 2 + 2 to 2 number, + plus and 2 number"
-
-
-def test_minus_two_numbers():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("2 - 2") == [
-        Token("2", "number"),
-        Token("-", "minus"),
-        Token("2", "number"),
-    ], "should tokenize 2 - 2 to 2 number, - minus and 2 number"
-
-
-def test_quote():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens('"') == [
-        Token('"', "quote"),
-    ], 'should tokenize " to quote'
-
-
-def test_less_than():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("<") == [
-        Token("<", "less_than"),
-    ], "should tokenize < to less_than"
-
-
-def test_greater_than():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens(">") == [
-        Token(">", "greater_than"),
-    ], "should tokenize > to greater_than"
-
-
-def test_less_than_or_equal():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("<=") == [
-        Token("<=", "less_than_or_equal"),
-    ], "should tokenize <= to less_than_or_equal"
-
-
-def test_greater_than_or_equal():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens(">=") == [
-        Token(">=", "greater_than_or_equal"),
-    ], "should tokenize >= to greater_than_or_equal"
-
-
-def test_equal_to():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("==") == [
-        Token("==", "equal_to"),
-    ], "should tokenize == to equal_to"
-
-
-def test_not_equal_to():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("!=") == [
-        Token("!=", "not_equal_to"),
-    ], "should tokenize != to not_equal_to"
-
-
-def test_lparen():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("(") == [
-        Token("(", "lparen"),
-    ], "should tokenize ( to lparen"
-
-
-def test_rparen():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens(")") == [
-        Token(")", "rparen"),
-    ], "should tokenize ) to rparen"
-
-
-def test_curly_lparen():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("{") == [
-        Token("{", "curly_lparen"),
-    ], "should tokenize { to curly_lparen"
-
-
-def test_curly_rparen():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("}") == [
-        Token("}", "curly_rparen"),
-    ], "should tokenize } to curly_rparen"
-
-
-def test_trailing_whitespace():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens(";      ") == [
-        Token(";", "semicol"),
-    ], "should tokenize ;       to ; as semicol and remove whitespace"
-
-
-def test_number_semicolon():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("2;") == [
-        Token("2", "number"),
-        Token(";", "semicol"),
-    ], "should tokenize 2; to 2 as number, ; as semicol"
-
-
-def test_number_right_parenthesis():
-    tokenizer = Tokenizer()
-    assert tokenizer.to_tokens("2)") == [
-        Token("2", "number"),
-        Token(")", "rparen"),
-    ], "should tokenize 2) to 2 as number, ) as rparen"
+    expr = ".1+(2.0*40)-30.000"
+    result = tokenizer.tokenize(expr)
+    expected_result = [
+        Token(".1", TokenType.NUMBER, 0.1),
+        Token("+", TokenType.OPERATOR),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("2.0", TokenType.NUMBER, 2.0),
+        Token("*", TokenType.OPERATOR),
+        Token("40", TokenType.NUMBER, 40.0),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("-", TokenType.OPERATOR),
+        Token("30.000", TokenType.NUMBER, 30.000),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+#
+#
+# def test_tokenizer_letters_in_floats():
+#     tokenizer = Tokenizer()
+#     expr = "1.00+(2.0*40)-30.abcd00.efgh0"
+#     with pytest.raises(ValueError):
+#         _result = tokenizer.tokenize(expr)

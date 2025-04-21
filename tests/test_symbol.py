@@ -1,8 +1,9 @@
 import pytest
 
-from src.joyTypes.Symbol import symbol
+from src.joyTypes.Symbol import Symbol
+
 
 
 def test_is_number():
-    x: symbol = 3
-    assert x is symbol, "number should be symbol"
+    x: Symbol = 3
+    assert x is Symbol, "number should be symbol"
