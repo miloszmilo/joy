@@ -1,33 +1,6 @@
 from enum import Enum
-import re
 from src.exceptions.TokenizerValueError import TokenizerValueError
 from src.joyTypes.Token import Token, TokenType
-
-tokens = {
-    "=": "equals",
-    "*": "times",
-    "/": "slash",
-    "%": "modulo",
-    "+": "plus",
-    "-": "minus",
-    "if": "ifsym",
-    "else": "elsesym",
-    "while": "whilesym",
-    "var": "varsym",
-    "print": "printsym",
-    ";": "semicol",
-    "(": "lparen",
-    ")": "rparen",
-    "{": "curly_lparen",
-    "}": "curly_rparen",
-    '"': "quote",
-    "<": "less_than",
-    ">": "greater_than",
-    "<=": "less_than_or_equal",
-    ">=": "greater_than_or_equal",
-    "==": "equal_to",
-    "!=": "not_equal_to",
-}
 
 
 class TokenizerState(Enum):
@@ -53,6 +26,7 @@ class Tokenizer:
     operators: list[str]
     parenthesis_balance: int
     decimal_point_found: bool
+    keywords: list[str]
 
     def __init__(self):
         self.current_state = TokenizerState.NEW_TOKEN
@@ -90,6 +64,7 @@ class Tokenizer:
         )
         self.decimal_point_found = False
         self.fancy_numeric: str = ""
+        self.keywords = ["var", "if"]
 
     def tokenize(self, string: str) -> list[Token]:
         output: list[Token] = []
@@ -265,6 +240,8 @@ class Tokenizer:
                     i += 1
                     continue
                 self.token_current = Token(self.token_string, TokenType.SYMBOL)
+                if char in self.keywords:
+                    self.token_current = Token(self.token_string, TokenType.KEYWORD)
                 self.next_state = TokenizerState.COMPLETE_TOKEN
                 continue
             if self.current_state == TokenizerState.COMPLETE_TOKEN:
