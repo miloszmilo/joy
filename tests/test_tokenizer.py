@@ -108,3 +108,25 @@ def test_tokenizer_symbol_space_float():
     ]
 
     assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+def test_tokenizer_hex_and_binary():
+    tokenizer = Tokenizer()
+    expr = "0b0110 0xABC34 23.176 9 "
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("0b0110", TokenType.NUMBER, float(int("0110", 2))),
+        Token("0xABC34", TokenType.NUMBER, float(int("ABC34", 16))),
+        Token("23.176", TokenType.NUMBER, 23.176),
+        Token("9", TokenType.NUMBER, 9),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+def test_tokenizer_malformed_hex():
+    tokenizer = Tokenizer()
+    expr = "0b0110 0xABmC34 23.176 9 "
+    with pytest.raises(TokenizerValueError):
+        _result = tokenizer.tokenize(expr)

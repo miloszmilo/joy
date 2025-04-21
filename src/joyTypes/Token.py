@@ -5,10 +5,15 @@ from typing import override
 class TokenType(Enum):
     NUMBER = "number"
     OPERATOR = "operator"
-    TEXT = "text"
+    STRING = "string"
     PARENTHESIS_OPEN = "parenthesis_open"
     PARENTHESIS_CLOSE = "parenthesis_close"
     SYMBOL = "symbol"
+    SCOPE_OPEN = "scope_open"
+    SCOPE_CLOSE = "scope_close"
+    END_OF_STATEMENT = "end_of_statement"
+    SEPARATOR = "separator"
+    KEYWORD = "KEYWORD"
 
 
 class Token:
@@ -17,7 +22,7 @@ class Token:
     value: float
 
     def __init__(
-        self, token: str = "", type: TokenType = TokenType.TEXT, value: float = 0
+        self, token: str = "", type: TokenType = TokenType.STRING, value: float = 0
     ):
         self.token = token
         self.type = type
@@ -35,7 +40,7 @@ class Token:
 
     @override
     def __str__(self) -> str:
-        return f'Token(token="{self.token}", type="{self.type}")'
+        return f'Token(token="{self.token}", type="{self.type}, value="{self.value}")'
 
     @override
     def __repr__(self) -> str:

@@ -38,6 +38,10 @@ class TokenizerState(Enum):
     OPERATOR = "operator"
     COMPLETE_TOKEN = "complete_token"
     SYMBOL_NAME = "symbol_name"
+    FANCY_NUMBER = "fancy_number"
+    HEX = "hex"
+    BINARY = "binary"
+    STRING = "string"
 
 
 class Tokenizer:
@@ -79,10 +83,13 @@ class Tokenizer:
         self.operators = ["+", "-", "/", "*"]
         self.parenthesis_balance = 0
         self._numbers: str = ".0123456789"
+        self._hex_numbers: str = "0123456789abcdefABCDEF"  # prefix 0x
+        self._bin_numbers: str = "01"  # prefix 0b
         self._symbol_names: str = (
             "abcdefghijklmnoprstuwvxyz.ABCDEFGHIJKLMNOPRSTUWVXYZ_0123456789"
         )
         self.decimal_point_found = False
+        self.fancy_numeric: str = ""
 
     def tokenize(self, string: str) -> list[Token]:
         output: list[Token] = []
@@ -96,6 +103,7 @@ class Tokenizer:
                 self.token_string = ""
                 self.token_current = Token()
                 self.decimal_point_found = False
+                self.fancy_numeric = ""
 
                 if char.isspace():
                     self.next_state = TokenizerState.NEW_TOKEN
@@ -109,8 +117,10 @@ class Tokenizer:
                         )
                     if char == ".":
                         self.decimal_point_found = True
-                    self.token_string = char
                     self.next_state = TokenizerState.NUMBER
+                    if char == "0":
+                        self.next_state = TokenizerState.FANCY_NUMBER
+                    self.token_string = char
                     i += 1
                     continue
 
@@ -124,10 +134,25 @@ class Tokenizer:
                 if char == ")":
                     self.next_state = TokenizerState.PARENTHESIS_CLOSE
                     continue
+                if char == '"':
+                    self.next_state = TokenizerState.STRING
+                    i += 1
+                    continue
                 self.token_string += char
                 i += 1
                 self.next_state = TokenizerState.SYMBOL_NAME
                 continue
+
+            if self.current_state == TokenizerState.STRING:
+                if char == '"':
+                    i += 1
+                    self.next_state = TokenizerState.COMPLETE_TOKEN
+                    self.token_current = Token(self.token_string, TokenType.STRING)
+                    continue
+                self.token_string += char
+                i += 1
+                continue
+
             if self.current_state == TokenizerState.NUMBER:
                 if char in self._numbers:
                     if char == "." and self.decimal_point_found:
@@ -146,6 +171,54 @@ class Tokenizer:
                 self.token_current = Token(
                     self.token_string, TokenType.NUMBER, float(self.token_string)
                 )
+
+            if self.current_state == TokenizerState.FANCY_NUMBER:
+                if char == "x":
+                    self.token_string += char
+                    self.next_state = TokenizerState.HEX
+                    i += 1
+                    continue
+                if char == "b":
+                    self.token_string += char
+                    self.next_state = TokenizerState.BINARY
+                    i += 1
+                    continue
+                raise TokenizerValueError(f"Expected binary or hex got {char}")
+
+            if self.current_state == TokenizerState.HEX:
+                if char in self._hex_numbers:
+                    self.token_string += char
+                    self.fancy_numeric += char
+                    i += 1
+                    self.next_state = TokenizerState.HEX
+                    continue
+                if char in self._symbol_names:
+                    raise TokenizerValueError(f"Expected hex got {char}")
+                self.next_state = TokenizerState.COMPLETE_TOKEN
+                self.token_current = Token(
+                    self.token_string,
+                    TokenType.NUMBER,
+                    float(int(self.fancy_numeric, 16)),
+                )
+                continue
+
+            if self.current_state == TokenizerState.BINARY:
+                if char in self._bin_numbers:
+                    self.token_string += char
+                    self.fancy_numeric += char
+                    i += 1
+                    self.next_state = TokenizerState.BINARY
+                    continue
+                if char in self._symbol_names:
+                    raise TokenizerValueError(f"Expected binary got {char}")
+                self.next_state = TokenizerState.COMPLETE_TOKEN
+                self.token_current = Token(
+                    self.token_string,
+                    TokenType.NUMBER,
+                    float(int(self.fancy_numeric, 2)),
+                )
+                continue
+
             if self.current_state == TokenizerState.OPERATOR:
                 if char in self.operator_digits:
                     if (self.token_string + char) in self.operators:
@@ -198,76 +271,7 @@ class Tokenizer:
                 output.append(self.token_current)
                 self.next_state = TokenizerState.NEW_TOKEN
                 continue
-        #
-        # while True:
-        #     if self.current_state == TokenizerState.NUMBER:
-        #         self.token_current = Token(
-        #             self.token_string, TokenType.NUMBER, float(self.token_string)
-        #         )
-        #         self.current_state = TokenizerState.COMPLETE_TOKEN
-        #         continue
-        #     if self.current_state == TokenizerState.OPERATOR:
-        #         if self.token_string in self.operators:
-        #             self.token_current = Token(self.token_string, TokenType.OPERATOR)
-        #             self.current_state = TokenizerState.COMPLETE_TOKEN
-        #             continue
-        #         raise TokenizerValueError(
-        #             f'Unrecognized operator "{self.token_string}".'
-        #         )
-        #     if self.current_state == TokenizerState.PARENTHESIS_OPEN:
-        #         self.parenthesis_balance += 1
-        #         self.token_current = Token(
-        #             self.token_string, TokenType.PARENTHESIS_OPEN
-        #         )
-        #         self.current_state = TokenizerState.COMPLETE_TOKEN
-        #         continue
-        #     if self.current_state == TokenizerState.PARENTHESIS_CLOSE:
-        #         self.parenthesis_balance -= 1
-        #         self.token_current = Token(
-        #             self.token_string, TokenType.PARENTHESIS_CLOSE
-        #         )
-        #         self.current_state = TokenizerState.COMPLETE_TOKEN
-        #         continue
-        #     if self.current_state == TokenizerState.SYMBOL_NAME:
-        #         self.token_current = Token(self.token_string, TokenType.SYMBOL)
-        #         self.current_state = TokenizerState.COMPLETE_TOKEN
-        #         continue
-        #     output.append(self.token_current)
-        #     self.token_string = ""
-        #     break
+
         if self.parenthesis_balance != 0:
             raise TokenizerValueError('Parenthesis "(" & ")" not balanced.')
         return output
-
-    def to_tokens(self, string: str) -> list[Token]:
-        token_list: list[Token] = []
-        string = string.strip().lstrip()
-        char: str = string
-        if string.find(" ") != -1:
-            char = re.split(r"\s+", string, maxsplit=1)[0]
-
-        type = ""
-        if char in tokens:
-            type = tokens[char]
-        if ";" in char and not type:
-            char = char[:-1]
-            string = " ;"
-        if char.isdigit() and not type:
-            type = "number"
-        if char.find(".") != -1 and not type:
-            try:
-                _ = float(char)
-                type = "number"
-            except ValueError:
-                raise TokenizerValueError(
-                    f"Token {char} is not a float but contains '.'"
-                )
-        if char.isalnum() and not type:
-            type = "variable"
-        token_list.append(Token(char, type))
-
-        if len(string) == len(char) and char == string:
-            return token_list
-        char_length = len(char)
-        token_list += self.to_tokens(string[char_length:])
-        return token_list
