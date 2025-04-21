@@ -37,6 +37,7 @@ class TokenizerState(Enum):
     PARENTHESIS_CLOSE = "parenthesis_close"
     OPERATOR = "operator"
     COMPLETE_TOKEN = "complete_token"
+    SYMBOL_NAME = "symbol_name"
 
 
 class Tokenizer:
@@ -78,6 +79,9 @@ class Tokenizer:
         self.operators = ["+", "-", "/", "*"]
         self.parenthesis_balance = 0
         self._numbers: str = ".0123456789"
+        self._symbol_names: str = (
+            "abcdefghijklmnoprstuwvxyz.ABCDEFGHIJKLMNOPRSTUWVXYZ_0123456789"
+        )
         self.decimal_point_found = False
 
     def tokenize(self, string: str) -> list[Token]:
@@ -86,6 +90,8 @@ class Tokenizer:
         while i in range(len(string)):
             char = string[i]
             self.current_state = self.next_state
+
+            # First character analysis
             if self.current_state == TokenizerState.NEW_TOKEN:
                 self.token_string = ""
                 self.token_current = Token()
@@ -118,6 +124,10 @@ class Tokenizer:
                 if char == ")":
                     self.next_state = TokenizerState.PARENTHESIS_CLOSE
                     continue
+                self.token_string += char
+                i += 1
+                self.next_state = TokenizerState.SYMBOL_NAME
+                continue
             if self.current_state == TokenizerState.NUMBER:
                 if char in self._numbers:
                     if char == "." and self.decimal_point_found:
@@ -130,6 +140,8 @@ class Tokenizer:
                     self.next_state = TokenizerState.NUMBER
                     i += 1
                     continue
+                if char in self._symbol_names:
+                    raise TokenizerValueError(f"Got letters in number. {string}")
                 self.next_state = TokenizerState.COMPLETE_TOKEN
                 self.token_current = Token(
                     self.token_string, TokenType.NUMBER, float(self.token_string)
@@ -174,43 +186,55 @@ class Tokenizer:
                 self.next_state = TokenizerState.COMPLETE_TOKEN
                 i += 1
                 continue
+            if self.current_state == TokenizerState.SYMBOL_NAME:
+                if char in self._symbol_names:
+                    self.token_string += char
+                    i += 1
+                    continue
+                self.token_current = Token(self.token_string, TokenType.SYMBOL)
+                self.next_state = TokenizerState.COMPLETE_TOKEN
+                continue
             if self.current_state == TokenizerState.COMPLETE_TOKEN:
                 output.append(self.token_current)
                 self.next_state = TokenizerState.NEW_TOKEN
                 continue
-
-        while True:
-            if self.current_state == TokenizerState.NUMBER:
-                self.token_current = Token(
-                    self.token_string, TokenType.NUMBER, float(self.token_string)
-                )
-                self.current_state = TokenizerState.COMPLETE_TOKEN
-                continue
-            if self.current_state == TokenizerState.OPERATOR:
-                if self.token_string in self.operators:
-                    self.token_current = Token(self.token_string, TokenType.OPERATOR)
-                    self.current_state = TokenizerState.COMPLETE_TOKEN
-                    continue
-                raise TokenizerValueError(
-                    f'Unrecognized operator "{self.token_string}".'
-                )
-            if self.current_state == TokenizerState.PARENTHESIS_OPEN:
-                self.parenthesis_balance += 1
-                self.token_current = Token(
-                    self.token_string, TokenType.PARENTHESIS_OPEN
-                )
-                self.current_state = TokenizerState.COMPLETE_TOKEN
-                continue
-            if self.current_state == TokenizerState.PARENTHESIS_CLOSE:
-                self.parenthesis_balance -= 1
-                self.token_current = Token(
-                    self.token_string, TokenType.PARENTHESIS_CLOSE
-                )
-                self.current_state = TokenizerState.COMPLETE_TOKEN
-                continue
-            output.append(self.token_current)
-            self.token_string = ""
-            break
+        #
+        # while True:
+        #     if self.current_state == TokenizerState.NUMBER:
+        #         self.token_current = Token(
+        #             self.token_string, TokenType.NUMBER, float(self.token_string)
+        #         )
+        #         self.current_state = TokenizerState.COMPLETE_TOKEN
+        #         continue
+        #     if self.current_state == TokenizerState.OPERATOR:
+        #         if self.token_string in self.operators:
+        #             self.token_current = Token(self.token_string, TokenType.OPERATOR)
+        #             self.current_state = TokenizerState.COMPLETE_TOKEN
+        #             continue
+        #         raise TokenizerValueError(
+        #             f'Unrecognized operator "{self.token_string}".'
+        #         )
+        #     if self.current_state == TokenizerState.PARENTHESIS_OPEN:
+        #         self.parenthesis_balance += 1
+        #         self.token_current = Token(
+        #             self.token_string, TokenType.PARENTHESIS_OPEN
+        #         )
+        #         self.current_state = TokenizerState.COMPLETE_TOKEN
+        #         continue
+        #     if self.current_state == TokenizerState.PARENTHESIS_CLOSE:
+        #         self.parenthesis_balance -= 1
+        #         self.token_current = Token(
+        #             self.token_string, TokenType.PARENTHESIS_CLOSE
+        #         )
+        #         self.current_state = TokenizerState.COMPLETE_TOKEN
+        #         continue
+        #     if self.current_state == TokenizerState.SYMBOL_NAME:
+        #         self.token_current = Token(self.token_string, TokenType.SYMBOL)
+        #         self.current_state = TokenizerState.COMPLETE_TOKEN
+        #         continue
+        #     output.append(self.token_current)
+        #     self.token_string = ""
+        #     break
         if self.parenthesis_balance != 0:
             raise TokenizerValueError('Parenthesis "(" & ")" not balanced.')
         return output

@@ -8,7 +8,7 @@ import pytest
 
 def test_tokenizer_simple():
     tokenizer = Tokenizer()
-    expr = "100+(20*40)-30000"
+    expr = "100+(20*40)-30000 "
     result = tokenizer.tokenize(expr)
     expected_result = [
         Token("100", TokenType.NUMBER, 100.0),
@@ -27,7 +27,7 @@ def test_tokenizer_simple():
 
 def test_tokenizer_floats():
     tokenizer = Tokenizer()
-    expr = "1.00+(2.0*40)-30.000"
+    expr = "1.00+(2.0*40)-30.000 "
     result = tokenizer.tokenize(expr)
     expected_result = [
         Token("1.00", TokenType.NUMBER, 1.0),
@@ -46,14 +46,14 @@ def test_tokenizer_floats():
 
 def test_tokenizer_multiple_dots_float():
     tokenizer = Tokenizer()
-    expr = "1.0.0+(2.0*40)-30.00.0"
+    expr = "1.0.0+(2.0*40)-30.00.0 "
     with pytest.raises(TokenizerValueError):
         _result = tokenizer.tokenize(expr)
 
 
 def test_tokenizer_start_with_dot():
     tokenizer = Tokenizer()
-    expr = ".1+(2.0*40)-30.000"
+    expr = ".1+(2.0*40)-30.000 "
     result = tokenizer.tokenize(expr)
     expected_result = [
         Token(".1", TokenType.NUMBER, 0.1),
@@ -70,10 +70,41 @@ def test_tokenizer_start_with_dot():
     assert result == expected_result, f"should tokenizer {expr} got {result}"
 
 
-#
-#
-# def test_tokenizer_letters_in_floats():
-#     tokenizer = Tokenizer()
-#     expr = "1.00+(2.0*40)-30.abcd00.efgh0"
-#     with pytest.raises(ValueError):
-#         _result = tokenizer.tokenize(expr)
+def test_tokenizer_letters_in_floats():
+    tokenizer = Tokenizer()
+    expr = "1.00+(2.0*40)-30.abcd00.efgh0 "
+    with pytest.raises(TokenizerValueError):
+        _result = tokenizer.tokenize(expr)
+
+
+def test_tokenizer_letters_before_float():
+    tokenizer = Tokenizer()
+    expr = "1.00+(2.0*40)-abc30.00.0 "
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("1.00", TokenType.NUMBER, 1.00),
+        Token("+", TokenType.OPERATOR),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("2.0", TokenType.NUMBER, 2.0),
+        Token("*", TokenType.OPERATOR),
+        Token("40", TokenType.NUMBER, 40.0),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("-", TokenType.OPERATOR),
+        Token("abc30.00.0", TokenType.SYMBOL),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+def test_tokenizer_symbol_space_float():
+    tokenizer = Tokenizer()
+    expr = "abc 1.0 "
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("abc", TokenType.SYMBOL),
+        Token("1.0", TokenType.NUMBER, 1.0),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"

@@ -8,6 +8,7 @@ class TokenType(Enum):
     TEXT = "text"
     PARENTHESIS_OPEN = "parenthesis_open"
     PARENTHESIS_CLOSE = "parenthesis_close"
+    SYMBOL = "symbol"
 
 
 class Token:
