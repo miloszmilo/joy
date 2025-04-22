@@ -215,7 +215,7 @@ Use this space to list resources you find helpful and would like to give credit 
 [license-shield]: https://img.shields.io/github/license/miloszmilo/joy.svg?style=for-the-badge
 [license-url]: https://github.com/miloszmilo/joy/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/othneildrew
+[linkedin-url]: https://www.linkedin.com/in/mi%C5%82osz-milosavljevi%C4%87-3b2356332
 [product-screenshot]: images/screenshot.png
 [Python]: https://img.shields.io/badge/python-000000?style=for-the-badge&logo=python&logoColor=white
 [Python-url]: https://python.org/

@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 from src.exceptions.TokenizerValueError import TokenizerValueError
 from src.joyTypes.Token import Token, TokenType
 from src.tokenizer import Tokenizer
@@ -8,7 +7,7 @@ import pytest
 
 def test_tokenizer_simple():
     tokenizer = Tokenizer()
-    expr = "100+(20*40)-30000 "
+    expr = "100+(20*40)-30000"
     result = tokenizer.tokenize(expr)
     expected_result = [
         Token("100", TokenType.NUMBER, 100.0),
@@ -27,7 +26,7 @@ def test_tokenizer_simple():
 
 def test_tokenizer_floats():
     tokenizer = Tokenizer()
-    expr = "1.00+(2.0*40)-30.000 "
+    expr = "1.00+(2.0*40)-30.000"
     result = tokenizer.tokenize(expr)
     expected_result = [
         Token("1.00", TokenType.NUMBER, 1.0),
@@ -53,7 +52,7 @@ def test_tokenizer_multiple_dots_float():
 
 def test_tokenizer_start_with_dot():
     tokenizer = Tokenizer()
-    expr = ".1+(2.0*40)-30.000 "
+    expr = ".1+(2.0*40)-30.000"
     result = tokenizer.tokenize(expr)
     expected_result = [
         Token(".1", TokenType.NUMBER, 0.1),
@@ -79,7 +78,7 @@ def test_tokenizer_letters_in_floats():
 
 def test_tokenizer_letters_before_float():
     tokenizer = Tokenizer()
-    expr = "1.00+(2.0*40)-abc30.00.0 "
+    expr = "1.00+(2.0*40)-abc30.00.0"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -99,7 +98,7 @@ def test_tokenizer_letters_before_float():
 
 def test_tokenizer_symbol_space_float():
     tokenizer = Tokenizer()
-    expr = "abc 1.0 "
+    expr = "abc 1.0"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -112,7 +111,7 @@ def test_tokenizer_symbol_space_float():
 
 def test_tokenizer_hex_and_binary():
     tokenizer = Tokenizer()
-    expr = "0b0110 0xABC34 23.176 9 "
+    expr = "0b0110 0xABC34 23.176 9"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -127,14 +126,14 @@ def test_tokenizer_hex_and_binary():
 
 def test_tokenizer_malformed_hex():
     tokenizer = Tokenizer()
-    expr = "0b0110 0xABmC34 23.176 9 "
+    expr = "0b0110 0xABmC34 23.176 9"
     with pytest.raises(TokenizerValueError):
         _result = tokenizer.tokenize(expr)
 
 
 def test_tokenizer_scope_simple():
     tokenizer = Tokenizer()
-    expr = "{0b0110 0xABC34 23.176 9} "
+    expr = "{0b0110 0xABC34 23.176 9}"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -151,21 +150,21 @@ def test_tokenizer_scope_simple():
 
 def test_tokenizer_scope_unbalanced():
     tokenizer = Tokenizer()
-    expr = "{0b0110 0xABC34 23.176 9 "
+    expr = "{0b0110 0xABC34 23.176 9"
     with pytest.raises(TokenizerValueError):
         _result = tokenizer.tokenize(expr)
 
 
 def test_tokenizer_scope_unbalanced_closing():
     tokenizer = Tokenizer()
-    expr = "0b0110 0xABC34 23.176 9} "
+    expr = "0b0110 0xABC34 23.176 9}"
     with pytest.raises(TokenizerValueError):
         _result = tokenizer.tokenize(expr)
 
 
 def test_tokenizer_comma_simple():
     tokenizer = Tokenizer()
-    expr = "{0b0110, 0xABC34, 23.176 9} "
+    expr = "{0b0110, 0xABC34, 23.176 9}"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -184,7 +183,7 @@ def test_tokenizer_comma_simple():
 
 def test_tokenizer_scope_complex():
     tokenizer = Tokenizer()
-    expr = "{0b0110, 0xABC34, ,23.176, ,9,} "
+    expr = "{0b0110, 0xABC34, ,23.176, ,9,}"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -207,7 +206,7 @@ def test_tokenizer_scope_complex():
 
 def test_tokenizer_eos():
     tokenizer = Tokenizer()
-    expr = "{0b0110, 0xABC34, 23.176 9}; "
+    expr = "{0b0110, 0xABC34, 23.176 9};"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -227,7 +226,7 @@ def test_tokenizer_eos():
 
 def test_tokenizer_print():
     tokenizer = Tokenizer()
-    expr = 'print("Hello, world!"); '
+    expr = 'print("Hello, world!");'
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -243,7 +242,7 @@ def test_tokenizer_print():
 
 def test_tokenizer_string():
     tokenizer = Tokenizer()
-    expr = '"Hello, world!" '
+    expr = '"Hello, world!"'
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -258,3 +257,14 @@ def test_tokenizer_string_unfinished():
     expr = '"Hello, world! '
     with pytest.raises(TokenizerValueError):
         _result = tokenizer.tokenize(expr)
+
+def test_tokenizer_var():
+    tokenizer = Tokenizer()
+    expr = 'var'
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("var", TokenType.KEYWORD),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"

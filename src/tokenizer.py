@@ -352,7 +352,7 @@ class SymbolNameState(TokenizerStateBase):
             tokenizer.next_char()
             return
         tokenizer.token_current = Token(tokenizer.token_string, TokenType.SYMBOL)
-        if tokenizer.char in tokenizer.keywords:
+        if tokenizer.token_string in tokenizer.keywords:
             tokenizer.token_current = Token(tokenizer.token_string, TokenType.KEYWORD)
         tokenizer.next_state = CompleteState()
 
