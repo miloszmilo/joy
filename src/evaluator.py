@@ -3,7 +3,8 @@ from typing import Callable, override
 
 from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.Symbol import Symbol, SymbolType, binary_operators, unary_operators
-from src.joyTypes.Token import Token
+from src.joyTypes.Token import Token, TokenType
+from src.tokenizer import Tokenizer
 
 MAX_PRECEDENCE = 100
 
@@ -28,6 +29,79 @@ class Evaluator:
         operator_stack: list[Token] = [],
     ):
         self.operator_stack = operator_stack
+
+    def _create_rpn_from_tokens(self, tokens: list[Token]) -> deque[Symbol]:
+        holding_stack: deque[Symbol] = deque()
+        output_stack: deque[Symbol] = deque()
+        previous_symbol: Symbol = Symbol("0", SymbolType.NUMBER, 0)
+
+        for i, c in enumerate(tokens):
+            if c.type == TokenType.NUMBER:
+                _sym = Symbol(str(c.value), SymbolType.NUMBER, 0)
+                output_stack.append(_sym)
+                previous_symbol = _sym
+                continue
+
+            if c.type == TokenType.PARENTHESIS_OPEN:
+                _sym = Symbol(c.token, SymbolType.PARENTHESIS_OPEN, 0)
+                holding_stack.appendleft(_sym)
+                previous_symbol = _sym
+                continue
+
+            if c.type == TokenType.PARENTHESIS_CLOSE:
+                while (
+                    holding_stack
+                    and holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
+                ):
+                    output_stack.append(holding_stack.popleft())
+                if not holding_stack:
+                    raise ExpressionError("Parenthesis missmatched")
+                if (
+                    holding_stack
+                    and holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
+                ):
+                    _ = holding_stack.popleft()
+                previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
+                continue
+
+            if c.token not in binary_operators.keys():
+                raise ExpressionError(f"Symbol {c} is not a valid symbol")
+
+            new_operator = Symbol(c.token, SymbolType.OPERATOR, 2)
+            if (c.token == "-" or c.token == "+") and (
+                previous_symbol.type
+                not in [
+                    SymbolType.NUMBER,
+                    SymbolType.PARENTHESIS_CLOSE,
+                ]
+                or i == 0
+            ):
+                new_operator.precedence = MAX_PRECEDENCE
+                new_operator.argument_count = 1
+
+            while (
+                holding_stack and holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
+            ):
+                if holding_stack[0].type != SymbolType.OPERATOR:
+                    break
+
+                if holding_stack[0].precedence >= new_operator.precedence:
+                    _sym = holding_stack.popleft()
+                    output_stack.append(_sym)
+                    continue
+                break
+            _sym = Symbol(
+                c.token,
+                SymbolType.OPERATOR,
+                new_operator.argument_count,
+                new_operator.precedence,
+            )
+            holding_stack.appendleft(_sym)
+            previous_symbol = _sym
+        while holding_stack:
+            output_stack.append(holding_stack.popleft())
+
+        return output_stack
 
     def _create_rpn_from(self, code_line: str = "") -> deque[Symbol]:
         holding_stack: deque[Symbol] = deque()
@@ -108,7 +182,7 @@ class Evaluator:
         for symbol in stack:
             args: list[float] = []
             if symbol.type == SymbolType.NUMBER:
-                output.appendleft(int(symbol.value))
+                output.appendleft(float(symbol.value))
                 continue
             if symbol.type == SymbolType.OPERATOR:
                 args = []
@@ -144,7 +218,10 @@ class Evaluator:
         return output.popleft()
 
     def evaluate(self, code_line: str = "") -> float:
-        rpn = self._create_rpn_from(code_line)
+        tokenizer = Tokenizer()
+        tokens = tokenizer.tokenize(code_line)
+        rpn = self._create_rpn_from_tokens(tokens)
+        # rpn = self._create_rpn_from(code_line)
         result = self._solve_rpn(rpn)
         return result
 

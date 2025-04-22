@@ -1,6 +1,6 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from enum import Enum
-from symtable import Symbol
 from typing import override
 from src.exceptions.TokenizerValueError import TokenizerValueError
 from src.joyTypes.Token import Token, TokenType
@@ -8,7 +8,7 @@ from src.joyTypes.Token import Token, TokenType
 
 class TokenizerStateBase(ABC):
     @abstractmethod
-    def handle(self, tokenizer):
+    def handle(self, tokenizer: Tokenizer) -> None:
         pass
 
 
@@ -95,9 +95,9 @@ class Tokenizer:
             self.char = self._string[self._i]
 
     def tokenize(self, string: str) -> list[Token]:
-        self._string = string
+        self._string = string + " "
         self.char = self._string[self._i]
-        while self._i in range(len(string)):
+        while self._i in range(len(self._string)):
             self.current_state.handle(self)
             if self.next_state:
                 self.current_state = self.next_state

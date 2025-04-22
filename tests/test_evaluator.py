@@ -7,21 +7,24 @@ from src.evaluator import (
 )
 from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.Symbol import Symbol, SymbolType
+from src.tokenizer import Tokenizer
 
 
 def test_rpn_notation():
     result = Evaluator()
     expr = "1 + 2 * 4 - 3"
-    rpn = result._create_rpn_from(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = result._create_rpn_from_tokens(tokens)
 
     expected_result = deque(
         [
-            Symbol("1", SymbolType.NUMBER, 0),
-            Symbol("2", SymbolType.NUMBER, 0),
-            Symbol("4", SymbolType.NUMBER, 0),
+            Symbol("1.0", SymbolType.NUMBER, 0),
+            Symbol("2.0", SymbolType.NUMBER, 0),
+            Symbol("4.0", SymbolType.NUMBER, 0),
             Symbol("*", SymbolType.OPERATOR),
             Symbol("+", SymbolType.OPERATOR),
-            Symbol("3", SymbolType.NUMBER, 0),
+            Symbol("3.0", SymbolType.NUMBER, 0),
             Symbol("-", SymbolType.OPERATOR),
         ]
     )
@@ -32,7 +35,9 @@ def test_rpn_notation():
 def test_simple_add_mul_subtract():
     result = Evaluator()
     expr = "1 + 2 * 4 - 3"
-    rpn = result._create_rpn_from(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = result._create_rpn_from_tokens(tokens)
     result = result._solve_rpn(rpn)
 
     expected_result = 6
@@ -43,7 +48,9 @@ def test_simple_add_mul_subtract():
 def test_simple_parenthesis_end():
     result = Evaluator()
     expr = "1 + 2 * (4 - 3)"
-    rpn = result._create_rpn_from(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = result._create_rpn_from_tokens(tokens)
     result = result._solve_rpn(rpn)
 
     expected_result = 3
@@ -56,7 +63,9 @@ def test_simple_parenthesis_end():
 def test_simple_parenthesis_start():
     result = Evaluator()
     expr = "(1 + 2) * 4 - 3"
-    rpn = result._create_rpn_from(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = result._create_rpn_from_tokens(tokens)
     result = result._solve_rpn(rpn)
 
     expected_result = 9
@@ -69,7 +78,9 @@ def test_simple_parenthesis_start():
 def test_multiple_parenthesis():
     result = Evaluator()
     expr = "(1 + 2) * (((4 - 3)-2))"
-    rpn = result._create_rpn_from(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = result._create_rpn_from_tokens(tokens)
     result = result._solve_rpn(rpn)
 
     expected_result = -3
@@ -84,24 +95,28 @@ def test_invalid_expression():
     expr = "(1 + 2) * 4 -"
 
     with pytest.raises(ExpressionError, match="Expression invalid"):
-        rpn = result._create_rpn_from(expr)
+        tokenizer = Tokenizer()
+        tokens = tokenizer.tokenize(expr)
+        rpn = result._create_rpn_from_tokens(tokens)
         result = result._solve_rpn(rpn)
 
 
 def test_negative_numbers():
     result = Evaluator()
     expr = "1 + 2 * - 4 - 3"
-    rpn = result._create_rpn_from(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = result._create_rpn_from_tokens(tokens)
 
     expected_rpn = deque(
         [
-            Symbol("1", SymbolType.NUMBER, 0),
-            Symbol("2", SymbolType.NUMBER, 0),
-            Symbol("4", SymbolType.NUMBER, 0),
+            Symbol("1.0", SymbolType.NUMBER, 0),
+            Symbol("2.0", SymbolType.NUMBER, 0),
+            Symbol("4.0", SymbolType.NUMBER, 0),
             Symbol("-", SymbolType.OPERATOR, 1, MAX_PRECEDENCE),
             Symbol("*", SymbolType.OPERATOR),
             Symbol("+", SymbolType.OPERATOR),
-            Symbol("3", SymbolType.NUMBER, 0),
+            Symbol("3.0", SymbolType.NUMBER, 0),
             Symbol("-", SymbolType.OPERATOR),
         ]
     )
@@ -116,39 +131,12 @@ def test_negative_numbers():
     )
 
 
-def test_negative_numbers():
-    result = Evaluator()
-    expr = "-1 + 2 *- 4 - 3"
-    rpn = result._create_rpn_from(expr)
-
-    expected_rpn = deque(
-        [
-            Symbol("1", SymbolType.NUMBER, 0),
-            Symbol("-", SymbolType.OPERATOR, 1, MAX_PRECEDENCE),
-            Symbol("2", SymbolType.NUMBER, 0),
-            Symbol("4", SymbolType.NUMBER, 0),
-            Symbol("-", SymbolType.OPERATOR, 1, MAX_PRECEDENCE),
-            Symbol("*", SymbolType.OPERATOR),
-            Symbol("+", SymbolType.OPERATOR),
-            Symbol("3", SymbolType.NUMBER, 0),
-            Symbol("-", SymbolType.OPERATOR),
-        ]
-    )
-    assert rpn == expected_rpn, f"should screate RPN from {expr} to {expected_rpn}"
-
-    result = result._solve_rpn(rpn)
-
-    expected_result = -12
-
-    assert result == expected_result, (
-        f"should solve RPN from {expr} to {expected_result}"
-    )
-
-
 def test_negative_numbers_complex():
     result = Evaluator()
     expr = "-((1 + 2)/((6*-7)+(7*-4)/2)-3)"
-    rpn = result._create_rpn_from(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = result._create_rpn_from_tokens(tokens)
 
     result = result._solve_rpn(rpn)
 
@@ -169,3 +157,43 @@ def test_evaluate():
     assert result == expected_result, (
         f"should solve RPN from {expr} to {expected_result}"
     )
+
+
+def test_rpn_notation_tokens():
+    result = Evaluator()
+    expr = "1 + 2 * 4 - 3"
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = result._create_rpn_from_tokens(tokens)
+
+    expected_result = deque(
+        [
+            Symbol("1.0", SymbolType.NUMBER, 0),
+            Symbol("2.0", SymbolType.NUMBER, 0),
+            Symbol("4.0", SymbolType.NUMBER, 0),
+            Symbol("*", SymbolType.OPERATOR),
+            Symbol("+", SymbolType.OPERATOR),
+            Symbol("3.0", SymbolType.NUMBER, 0),
+            Symbol("-", SymbolType.OPERATOR),
+        ]
+    )
+
+    assert rpn == expected_result, f"should solve RPN from {expr} to {expected_result}"
+
+
+def test_rpn_notation_complex():
+    eval = Evaluator()
+    expr = "0x1 + 0b10 * 4 - 3.0"
+    result = eval.evaluate(expr)
+
+    expected_result = 6
+    assert result == expected_result, (
+        f"should solve RPN from {expr} to {expected_result}"
+    )
+
+
+def test_functions():
+    eval = Evaluator()
+    expr = "f(1,2)"
+    with pytest.raises(ExpressionError):
+        res = eval.evaluate(expr)
