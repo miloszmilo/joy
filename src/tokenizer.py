@@ -1,7 +1,15 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from symtable import Symbol
+from typing import override
 from src.exceptions.TokenizerValueError import TokenizerValueError
 from src.joyTypes.Token import Token, TokenType
+
+
+class TokenizerStateBase(ABC):
+    @abstractmethod
+    def handle(self, tokenizer):
+        pass
 
 
 class TokenizerState(Enum):
@@ -23,8 +31,8 @@ class TokenizerState(Enum):
 
 
 class Tokenizer:
-    current_state: TokenizerState
-    next_state: TokenizerState
+    current_state: TokenizerStateBase
+    next_state: TokenizerStateBase
     token_string: str
     token_current: Token
     operator_digits: list[str]
@@ -34,10 +42,13 @@ class Tokenizer:
     decimal_point_found: bool
     keywords: list[str]
     _i: int
+    _string: str
+    char: str
+    output: list[Token]
 
     def __init__(self):
-        self.current_state = TokenizerState.NEW_TOKEN
-        self.next_state = TokenizerState.NEW_TOKEN
+        self.current_state = NewTokenState()
+        self.next_state = NewTokenState()
         self.token_string = ""
         self.token_current = Token()
         self.operator_digits = [
@@ -74,227 +85,22 @@ class Tokenizer:
         self.fancy_numeric: str = ""
         self.keywords = ["var", "if"]
         self._i = 0
+        self._string = ""
+        self.char = ""
+        self.output = []
+
+    def next_char(self):
+        self._i += 1
+        if self._i < len(self._string):
+            self.char = self._string[self._i]
 
     def tokenize(self, string: str) -> list[Token]:
-        output: list[Token] = []
+        self._string = string
+        self.char = self._string[self._i]
         while self._i in range(len(string)):
-            char = string[self._i]
-            self.current_state = self.next_state
-
-            # First character analysis
-            if self.current_state == TokenizerState.NEW_TOKEN:
-                self.token_string = ""
-                self.token_current = Token()
-                self.decimal_point_found = False
-                self.fancy_numeric = ""
-
-                if char.isspace():
-                    self.next_state = TokenizerState.NEW_TOKEN
-                    self._i += 1
-                    continue
-
-                if char in self._numbers:
-                    if char == "." and self.decimal_point_found:
-                        raise TokenizerValueError(
-                            f"Found more than one decimal point in float. {string}"
-                        )
-                    if char == ".":
-                        self.decimal_point_found = True
-                    self.next_state = TokenizerState.NUMBER
-                    if char == "0":
-                        self.next_state = TokenizerState.FANCY_NUMBER
-                    self.token_string = char
-                    self._i += 1
-                    continue
-
-                if char in self.operator_digits:
-                    self.next_state = TokenizerState.OPERATOR
-                    continue
-
-                if char == "(":
-                    self.next_state = TokenizerState.PARENTHESIS_OPEN
-                    continue
-                if char == ")":
-                    self.next_state = TokenizerState.PARENTHESIS_CLOSE
-                    continue
-                if char == "{":
-                    self.next_state = TokenizerState.SCOPE_OPEN
-                    continue
-                if char == "}":
-                    self.next_state = TokenizerState.SCOPE_CLOSE
-                    continue
-                if char == ",":
-                    self.next_state = TokenizerState.COMMA
-                    continue
-                if char == ";":
-                    self.next_state = TokenizerState.END_OF_STATEMENT
-                    continue
-                if char == '"':
-                    self.next_state = TokenizerState.STRING
-                    self._i += 1
-                    continue
-                self.token_string += char
-                self._i += 1
-                self.next_state = TokenizerState.SYMBOL_NAME
-                continue
-
-            if self.current_state == TokenizerState.STRING:
-                if char == '"':
-                    self._i += 1
-                    self.next_state = TokenizerState.COMPLETE_TOKEN
-                    self.token_current = Token(self.token_string, TokenType.STRING)
-                    continue
-                self.token_string += char
-                self._i += 1
-                continue
-
-            if self.current_state == TokenizerState.NUMBER:
-                if char in self._numbers:
-                    if char == "." and self.decimal_point_found:
-                        raise TokenizerValueError(
-                            f"Found more than one decimal point in float. {string}"
-                        )
-                    if char == ".":
-                        self.decimal_point_found = True
-                    self.token_string += char
-                    self.next_state = TokenizerState.NUMBER
-                    self._i += 1
-                    continue
-                if char in self._symbol_names:
-                    raise TokenizerValueError(f"Got letters in number. {string}")
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self.token_current = Token(
-                    self.token_string, TokenType.NUMBER, float(self.token_string)
-                )
-
-            if self.current_state == TokenizerState.FANCY_NUMBER:
-                if char == "x":
-                    self.token_string += char
-                    self.next_state = TokenizerState.HEX
-                    self._i += 1
-                    continue
-                if char == "b":
-                    self.token_string += char
-                    self.next_state = TokenizerState.BINARY
-                    self._i += 1
-                    continue
-                raise TokenizerValueError(f"Expected binary or hex got {char}")
-
-            if self.current_state == TokenizerState.HEX:
-                if char in self._hex_numbers:
-                    self.token_string += char
-                    self.fancy_numeric += char
-                    self._i += 1
-                    self.next_state = TokenizerState.HEX
-                    continue
-                if char in self._symbol_names:
-                    raise TokenizerValueError(f"Expected hex got {char}")
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self.token_current = Token(
-                    self.token_string,
-                    TokenType.NUMBER,
-                    float(int(self.fancy_numeric, 16)),
-                )
-                continue
-
-            if self.current_state == TokenizerState.BINARY:
-                if char in self._bin_numbers:
-                    self.token_string += char
-                    self.fancy_numeric += char
-                    self._i += 1
-                    self.next_state = TokenizerState.BINARY
-                    continue
-                if char in self._symbol_names:
-                    raise TokenizerValueError(f"Expected binary got {char}")
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self.token_current = Token(
-                    self.token_string,
-                    TokenType.NUMBER,
-                    float(int(self.fancy_numeric, 2)),
-                )
-                continue
-
-            if self.current_state == TokenizerState.OPERATOR:
-                if char in self.operator_digits:
-                    if (self.token_string + char) in self.operators:
-                        self.token_string += char
-                        self._i += 1
-                        continue
-                    if self.token_string in self.operators:
-                        self.token_current = Token(
-                            self.token_string, TokenType.OPERATOR
-                        )
-                        self.next_state = TokenizerState.COMPLETE_TOKEN
-                        continue
-                    self.token_string += char
-                    self._i += 1
-                    continue
-                if self.token_string in self.operators:
-                    self.token_current = Token(self.token_string, TokenType.OPERATOR)
-                    self.next_state = TokenizerState.COMPLETE_TOKEN
-                    continue
-                raise TokenizerValueError(
-                    f'Unrecognized operator "{self.token_string}".'
-                )
-            if self.current_state == TokenizerState.PARENTHESIS_OPEN:
-                self.token_string += char
-                self.parenthesis_balance += 1
-                self.token_current = Token(
-                    self.token_string, TokenType.PARENTHESIS_OPEN
-                )
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self._i += 1
-                continue
-            if self.current_state == TokenizerState.PARENTHESIS_CLOSE:
-                self.token_string += char
-                self.parenthesis_balance -= 1
-                self.token_current = Token(
-                    self.token_string, TokenType.PARENTHESIS_CLOSE
-                )
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self._i += 1
-                continue
-            if self.current_state == TokenizerState.SCOPE_OPEN:
-                self.token_string += char
-                self.scope_balance += 1
-                self.token_current = Token(self.token_string, TokenType.SCOPE_OPEN)
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self._i += 1
-                continue
-            if self.current_state == TokenizerState.SCOPE_CLOSE:
-                self.token_string += char
-                self.scope_balance -= 1
-                self.token_current = Token(self.token_string, TokenType.SCOPE_CLOSE)
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self._i += 1
-                continue
-            if self.current_state == TokenizerState.COMMA:
-                self.token_string += char
-                self.token_current = Token(self.token_string, TokenType.COMMA)
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self._i += 1
-            if self.current_state == TokenizerState.END_OF_STATEMENT:
-                self.token_string += char
-                self.token_current = Token(
-                    self.token_string, TokenType.END_OF_STATEMENT
-                )
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                self._i += 1
-            if self.current_state == TokenizerState.SYMBOL_NAME:
-                if char in self._symbol_names:
-                    self.token_string += char
-                    self._i += 1
-                    continue
-                self.token_current = Token(self.token_string, TokenType.SYMBOL)
-                if char in self.keywords:
-                    self.token_current = Token(self.token_string, TokenType.KEYWORD)
-                self.next_state = TokenizerState.COMPLETE_TOKEN
-                continue
-            if self.current_state == TokenizerState.COMPLETE_TOKEN:
-                output.append(self.token_current)
-                self.next_state = TokenizerState.NEW_TOKEN
-                continue
-
+            self.current_state.handle(self)
+            if self.next_state:
+                self.current_state = self.next_state
         if self.parenthesis_balance != 0:
             raise TokenizerValueError(
                 f'Parenthesis "(" & ")" not balanced. Expected {self.parenthesis_balance} more'
@@ -303,58 +109,256 @@ class Tokenizer:
             raise TokenizerValueError(
                 f'Scope "{" & "}" not balanced. Expected {self.scope_balance} more.'
             )
-        if self.current_state == TokenizerState.STRING:
+        if isinstance(self.current_state, StringState):
             raise TokenizerValueError("Missing quotation marks.")
-        return output
-
-
-class TokenizerStateBase(ABC):
-    @abstractmethod
-    def handle(self, tokenizer: Tokenizer, char: str):
-        pass
+        return self.output
 
 
 class NewTokenState(TokenizerStateBase):
-    def handle(self, tokenizer: Tokenizer, char: str):
+    @override
+    def handle(self, tokenizer: Tokenizer):
         tokenizer.token_string = ""
         tokenizer.token_current = Token()
         tokenizer.decimal_point_found = False
         tokenizer.fancy_numeric = ""
 
-        if char.isspace():
-            tokenizer.next_state = TokenizerState.NEW_TOKEN
-            tokenizer._i += 1
+        if tokenizer.char.isspace():
+            tokenizer.next_state = NewTokenState()
+            tokenizer.next_char()
             return
 
-        if char in tokenizer._numbers:
-            if char == "." and tokenizer.decimal_point_found:
-                raise TokenizerValueError(
-                    f"Found more than one decimal point in float. {string}"
-                )
-            if char == ".":
+        if tokenizer.char in tokenizer._numbers:
+            if tokenizer.char == "." and tokenizer.decimal_point_found:
+                raise TokenizerValueError("Found more than one decimal point in float.")
+            if tokenizer.char == ".":
                 tokenizer.decimal_point_found = True
-            tokenizer.next_state = TokenizerState.NUMBER
-            if char == "0":
-                tokenizer.next_state = TokenizerState.FANCY_NUMBER
-            tokenizer.token_string = char
-            tokenizer._i += 1
+            tokenizer.next_state = NumberState()
+            if tokenizer.char == "0":
+                tokenizer.next_state = FancyNumberState()
+            tokenizer.token_string = tokenizer.char
+            tokenizer.next_char()
             return
 
-        if char in tokenizer.operator_digits:
-            tokenizer.next_state = TokenizerState.OPERATOR
+        if tokenizer.char in tokenizer.operator_digits:
+            tokenizer.next_state = OperatorState()
             return
 
-        if char == "(":
-            tokenizer.next_state = TokenizerState.PARENTHESIS_OPEN
+        if tokenizer.char == "(":
+            tokenizer.next_state = OpenParenthesisState()
             return
-        if char == ")":
-            tokenizer.next_state = TokenizerState.PARENTHESIS_CLOSE
+        if tokenizer.char == ")":
+            tokenizer.next_state = CloseParenthesisState()
             return
-        if char == '"':
-            tokenizer.next_state = TokenizerState.STRING
-            tokenizer._i += 1
+        if tokenizer.char == '"':
+            tokenizer.next_state = StringState()
+            tokenizer.next_char()
             return
-        tokenizer.token_string += char
-        tokenizer._i += 1
-        tokenizer.next_state = TokenizerState.SYMBOL_NAME
-        return
+        if tokenizer.char == "{":
+            tokenizer.next_state = OpenScopeState()
+            return
+        if tokenizer.char == "}":
+            tokenizer.next_state = CloseScopeState()
+            return
+        if tokenizer.char == ",":
+            tokenizer.next_state = CommaState()
+            return
+        if tokenizer.char == ";":
+            tokenizer.next_state = EndOfStatementState()
+            return
+        tokenizer.token_string += tokenizer.char
+        tokenizer.next_char()
+        tokenizer.next_state = SymbolNameState()
+
+
+class StringState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        if tokenizer.char == '"':
+            tokenizer.next_char()
+            tokenizer.next_state = CompleteState()
+            tokenizer.token_current = Token(tokenizer.token_string, TokenType.STRING)
+            return
+        tokenizer.token_string += tokenizer.char
+        tokenizer.next_char()
+
+
+class NumberState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        if tokenizer.char in tokenizer._numbers:
+            if tokenizer.char == "." and tokenizer.decimal_point_found:
+                raise TokenizerValueError("Found more than one decimal point in float.")
+            if tokenizer.char == ".":
+                tokenizer.decimal_point_found = True
+            tokenizer.token_string += tokenizer.char
+            tokenizer.next_state = NumberState()
+            tokenizer.next_char()
+            return
+        if tokenizer.char in tokenizer._symbol_names:
+            raise TokenizerValueError("Got letters in number.")
+        tokenizer.next_state = CompleteState()
+        tokenizer.token_current = Token(
+            tokenizer.token_string, TokenType.NUMBER, float(tokenizer.token_string)
+        )
+
+
+class FancyNumberState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        if tokenizer.char == "x":
+            tokenizer.token_string += tokenizer.char
+            tokenizer.next_state = HexNumberState()
+            tokenizer.next_char()
+            return
+        if tokenizer.char == "b":
+            tokenizer.token_string += tokenizer.char
+            tokenizer.next_state = BinNumberState()
+            tokenizer.next_char()
+            return
+        raise TokenizerValueError(f"Expected binary or hex got {tokenizer.char}")
+
+
+class HexNumberState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        if tokenizer.char in tokenizer._hex_numbers:
+            tokenizer.token_string += tokenizer.char
+            tokenizer.fancy_numeric += tokenizer.char
+            tokenizer.next_char()
+            tokenizer.next_state = HexNumberState()
+            return
+        if tokenizer.char in tokenizer._symbol_names:
+            raise TokenizerValueError(f"Expected hex got {tokenizer.char}")
+        tokenizer.next_state = CompleteState()
+        tokenizer.token_current = Token(
+            tokenizer.token_string,
+            TokenType.NUMBER,
+            float(int(tokenizer.fancy_numeric, 16)),
+        )
+
+
+class BinNumberState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        if tokenizer.char in tokenizer._bin_numbers:
+            tokenizer.token_string += tokenizer.char
+            tokenizer.fancy_numeric += tokenizer.char
+            tokenizer.next_char()
+            tokenizer.next_state = BinNumberState()
+            return
+        if tokenizer.char in tokenizer._symbol_names:
+            raise TokenizerValueError(f"Expected binary got {tokenizer.char}")
+        tokenizer.next_state = CompleteState()
+        tokenizer.token_current = Token(
+            tokenizer.token_string,
+            TokenType.NUMBER,
+            float(int(tokenizer.fancy_numeric, 2)),
+        )
+
+
+class OperatorState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        if tokenizer.char in tokenizer.operator_digits:
+            if (tokenizer.token_string + tokenizer.char) in tokenizer.operators:
+                tokenizer.token_string += tokenizer.char
+                tokenizer.next_char()
+                return
+            if tokenizer.token_string in tokenizer.operators:
+                tokenizer.token_current = Token(
+                    tokenizer.token_string, TokenType.OPERATOR
+                )
+                tokenizer.next_state = CompleteState()
+                return
+            tokenizer.token_string += tokenizer.char
+            tokenizer.next_char()
+            return
+        if tokenizer.token_string in tokenizer.operators:
+            tokenizer.token_current = Token(tokenizer.token_string, TokenType.OPERATOR)
+            tokenizer.next_state = CompleteState()
+            return
+        raise TokenizerValueError(f'Unrecognized operator "{tokenizer.token_string}".')
+
+
+class OpenParenthesisState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        tokenizer.token_string += tokenizer.char
+        tokenizer.parenthesis_balance += 1
+        tokenizer.token_current = Token(
+            tokenizer.token_string, TokenType.PARENTHESIS_OPEN
+        )
+        tokenizer.next_state = CompleteState()
+        tokenizer.next_char()
+
+
+class CloseParenthesisState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        tokenizer.token_string += tokenizer.char
+        tokenizer.parenthesis_balance -= 1
+        tokenizer.token_current = Token(
+            tokenizer.token_string, TokenType.PARENTHESIS_CLOSE
+        )
+        tokenizer.next_state = CompleteState()
+        tokenizer.next_char()
+
+
+class OpenScopeState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        tokenizer.token_string += tokenizer.char
+        tokenizer.scope_balance += 1
+        tokenizer.token_current = Token(tokenizer.token_string, TokenType.SCOPE_OPEN)
+        tokenizer.next_state = CompleteState()
+        tokenizer.next_char()
+
+
+class CloseScopeState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        tokenizer.token_string += tokenizer.char
+        tokenizer.scope_balance -= 1
+        tokenizer.token_current = Token(tokenizer.token_string, TokenType.SCOPE_CLOSE)
+        tokenizer.next_state = CompleteState()
+        tokenizer.next_char()
+
+
+class CommaState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        tokenizer.token_string += tokenizer.char
+        tokenizer.token_current = Token(tokenizer.token_string, TokenType.COMMA)
+        tokenizer.next_state = CompleteState()
+        tokenizer.next_char()
+
+
+class EndOfStatementState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        tokenizer.token_string += tokenizer.char
+        tokenizer.token_current = Token(
+            tokenizer.token_string, TokenType.END_OF_STATEMENT
+        )
+        tokenizer.next_state = CompleteState()
+        tokenizer.next_char()
+
+
+class SymbolNameState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        if tokenizer.char in tokenizer._symbol_names:
+            tokenizer.token_string += tokenizer.char
+            tokenizer.next_char()
+            return
+        tokenizer.token_current = Token(tokenizer.token_string, TokenType.SYMBOL)
+        if tokenizer.char in tokenizer.keywords:
+            tokenizer.token_current = Token(tokenizer.token_string, TokenType.KEYWORD)
+        tokenizer.next_state = CompleteState()
+
+
+class CompleteState(TokenizerStateBase):
+    @override
+    def handle(self, tokenizer: Tokenizer):
+        tokenizer.output.append(tokenizer.token_current)
+        tokenizer.next_state = NewTokenState()
