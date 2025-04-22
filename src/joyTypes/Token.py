@@ -11,6 +11,7 @@ class TokenType(Enum):
     SYMBOL = "symbol"
     SCOPE_OPEN = "scope_open"
     SCOPE_CLOSE = "scope_close"
+    COMMA = "comma"
     END_OF_STATEMENT = "end_of_statement"
     SEPARATOR = "separator"
     KEYWORD = "KEYWORD"

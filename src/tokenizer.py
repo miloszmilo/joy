@@ -18,6 +18,8 @@ class TokenizerState(Enum):
     STRING = "string"
     SCOPE_OPEN = "scope_open"
     SCOPE_CLOSE = "scope_close"
+    COMMA = "comma"
+    END_OF_STATEMENT = "end_of_statement"
 
 
 class Tokenizer:
@@ -120,6 +122,12 @@ class Tokenizer:
                     continue
                 if char == "}":
                     self.next_state = TokenizerState.SCOPE_CLOSE
+                    continue
+                if char == ",":
+                    self.next_state = TokenizerState.COMMA
+                    continue
+                if char == ";":
+                    self.next_state = TokenizerState.END_OF_STATEMENT
                     continue
                 if char == '"':
                     self.next_state = TokenizerState.STRING
@@ -260,6 +268,18 @@ class Tokenizer:
                 self.next_state = TokenizerState.COMPLETE_TOKEN
                 self._i += 1
                 continue
+            if self.current_state == TokenizerState.COMMA:
+                self.token_string += char
+                self.token_current = Token(self.token_string, TokenType.COMMA)
+                self.next_state = TokenizerState.COMPLETE_TOKEN
+                self._i += 1
+            if self.current_state == TokenizerState.END_OF_STATEMENT:
+                self.token_string += char
+                self.token_current = Token(
+                    self.token_string, TokenType.END_OF_STATEMENT
+                )
+                self.next_state = TokenizerState.COMPLETE_TOKEN
+                self._i += 1
             if self.current_state == TokenizerState.SYMBOL_NAME:
                 if char in self._symbol_names:
                     self.token_string += char
@@ -283,6 +303,8 @@ class Tokenizer:
             raise TokenizerValueError(
                 f'Scope "{" & "}" not balanced. Expected {self.scope_balance} more.'
             )
+        if self.current_state == TokenizerState.STRING:
+            raise TokenizerValueError("Missing quotation marks.")
         return output
 
 

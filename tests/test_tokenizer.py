@@ -161,3 +161,100 @@ def test_tokenizer_scope_unbalanced_closing():
     expr = "0b0110 0xABC34 23.176 9} "
     with pytest.raises(TokenizerValueError):
         _result = tokenizer.tokenize(expr)
+
+
+def test_tokenizer_comma_simple():
+    tokenizer = Tokenizer()
+    expr = "{0b0110, 0xABC34, 23.176 9} "
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("{", TokenType.SCOPE_OPEN),
+        Token("0b0110", TokenType.NUMBER, float(int("0110", 2))),
+        Token(",", TokenType.COMMA),
+        Token("0xABC34", TokenType.NUMBER, float(int("ABC34", 16))),
+        Token(",", TokenType.COMMA),
+        Token("23.176", TokenType.NUMBER, 23.176),
+        Token("9", TokenType.NUMBER, 9),
+        Token("}", TokenType.SCOPE_CLOSE),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+def test_tokenizer_scope_complex():
+    tokenizer = Tokenizer()
+    expr = "{0b0110, 0xABC34, ,23.176, ,9,} "
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("{", TokenType.SCOPE_OPEN),
+        Token("0b0110", TokenType.NUMBER, float(int("0110", 2))),
+        Token(",", TokenType.COMMA),
+        Token("0xABC34", TokenType.NUMBER, float(int("ABC34", 16))),
+        Token(",", TokenType.COMMA),
+        Token(",", TokenType.COMMA),
+        Token("23.176", TokenType.NUMBER, 23.176),
+        Token(",", TokenType.COMMA),
+        Token(",", TokenType.COMMA),
+        Token("9", TokenType.NUMBER, 9),
+        Token(",", TokenType.COMMA),
+        Token("}", TokenType.SCOPE_CLOSE),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+def test_tokenizer_eos():
+    tokenizer = Tokenizer()
+    expr = "{0b0110, 0xABC34, 23.176 9}; "
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("{", TokenType.SCOPE_OPEN),
+        Token("0b0110", TokenType.NUMBER, float(int("0110", 2))),
+        Token(",", TokenType.COMMA),
+        Token("0xABC34", TokenType.NUMBER, float(int("ABC34", 16))),
+        Token(",", TokenType.COMMA),
+        Token("23.176", TokenType.NUMBER, 23.176),
+        Token("9", TokenType.NUMBER, 9),
+        Token("}", TokenType.SCOPE_CLOSE),
+        Token(";", TokenType.END_OF_STATEMENT),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+def test_tokenizer_print():
+    tokenizer = Tokenizer()
+    expr = 'print("Hello, world!"); '
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("print", TokenType.SYMBOL),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("Hello, world!", TokenType.STRING),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token(";", TokenType.END_OF_STATEMENT),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+def test_tokenizer_string():
+    tokenizer = Tokenizer()
+    expr = '"Hello, world!" '
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("Hello, world!", TokenType.STRING),
+    ]
+
+    assert result == expected_result, f"should tokenizer {expr} got {result}"
+
+
+def test_tokenizer_string_unfinished():
+    tokenizer = Tokenizer()
+    expr = '"Hello, world! '
+    with pytest.raises(TokenizerValueError):
+        _result = tokenizer.tokenize(expr)
