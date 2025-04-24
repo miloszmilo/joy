@@ -21,7 +21,7 @@ def test_tokenizer_simple():
         Token("30000", TokenType.NUMBER, 30000.0),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_floats():
@@ -40,7 +40,7 @@ def test_tokenizer_floats():
         Token("30.000", TokenType.NUMBER, 30.000),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_multiple_dots_float():
@@ -66,7 +66,7 @@ def test_tokenizer_start_with_dot():
         Token("30.000", TokenType.NUMBER, 30.000),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_letters_in_floats():
@@ -93,7 +93,7 @@ def test_tokenizer_letters_before_float():
         Token("abc30.00.0", TokenType.SYMBOL),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_symbol_space_float():
@@ -106,7 +106,7 @@ def test_tokenizer_symbol_space_float():
         Token("1.0", TokenType.NUMBER, 1.0),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_hex_and_binary():
@@ -121,7 +121,7 @@ def test_tokenizer_hex_and_binary():
         Token("9", TokenType.NUMBER, 9),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_malformed_hex():
@@ -145,7 +145,7 @@ def test_tokenizer_scope_simple():
         Token("}", TokenType.SCOPE_CLOSE),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_scope_unbalanced():
@@ -178,7 +178,7 @@ def test_tokenizer_comma_simple():
         Token("}", TokenType.SCOPE_CLOSE),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_scope_complex():
@@ -201,7 +201,7 @@ def test_tokenizer_scope_complex():
         Token("}", TokenType.SCOPE_CLOSE),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_eos():
@@ -221,7 +221,7 @@ def test_tokenizer_eos():
         Token(";", TokenType.END_OF_STATEMENT),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_print():
@@ -230,14 +230,14 @@ def test_tokenizer_print():
     result = tokenizer.tokenize(expr)
 
     expected_result = [
-        Token("print", TokenType.SYMBOL),
+        Token("print", TokenType.KEYWORD),
         Token("(", TokenType.PARENTHESIS_OPEN),
         Token("Hello, world!", TokenType.STRING),
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token(";", TokenType.END_OF_STATEMENT),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_string():
@@ -249,7 +249,7 @@ def test_tokenizer_string():
         Token("Hello, world!", TokenType.STRING),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"
 
 
 def test_tokenizer_string_unfinished():
@@ -267,4 +267,4 @@ def test_tokenizer_var():
         Token("var", TokenType.KEYWORD),
     ]
 
-    assert result == expected_result, f"should tokenizer {expr} got {result}"
+    assert result == expected_result, f"should tokenize {expr} got {result}"

@@ -196,4 +196,16 @@ def test_functions():
     eval = Evaluator()
     expr = "f(1,2)"
     with pytest.raises(ExpressionError):
-        res = eval.evaluate(expr)
+        _res = eval.evaluate(expr)
+
+
+def test_variable():
+    eval = Evaluator()
+    expr = "var x = 4;"
+    result = eval.evaluate(expr)
+
+    print(result)
+
+    expected_result = 4
+
+    assert result == expected_result

@@ -11,6 +11,7 @@ MAX_PRECEDENCE = 100
 
 class Evaluator:
     operator_stack: list[Token]
+    variables: dict[str, float | str]
 
     operations: dict[str, Callable[[float, float], float]] = {
         "/": lambda x, y: x / y,
@@ -27,8 +28,10 @@ class Evaluator:
     def __init__(
         self,
         operator_stack: list[Token] = [],
+        variables: dict[str, float | str] = {None: None},
     ):
         self.operator_stack = operator_stack
+        self.variables = variables
 
     def _create_rpn_from_tokens(self, tokens: list[Token]) -> deque[Symbol]:
         holding_stack: deque[Symbol] = deque()
@@ -63,6 +66,15 @@ class Evaluator:
                     _ = holding_stack.popleft()
                 previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
                 continue
+
+            if c.type == TokenType.KEYWORD:
+                print("Is keyword")
+                if c.token == "var":
+                    print("Is var")
+                    # Read next token
+                    # get it's name
+                    # assign value
+                    self.variables[c.token] = 0.0
 
             if c.token not in binary_operators.keys():
                 raise ExpressionError(f"Symbol {c} is not a valid symbol")
@@ -221,7 +233,6 @@ class Evaluator:
         tokenizer = Tokenizer()
         tokens = tokenizer.tokenize(code_line)
         rpn = self._create_rpn_from_tokens(tokens)
-        # rpn = self._create_rpn_from(code_line)
         result = self._solve_rpn(rpn)
         return result
 

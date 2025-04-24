@@ -72,7 +72,7 @@ class Tokenizer:
             ">",
             "~",
         ]
-        self.operators = ["+", "-", "/", "*"]
+        self.operators = ["+", "-", "/", "*", "="]
         self.parenthesis_balance = 0
         self.scope_balance = 0
         self._numbers: str = ".0123456789"
@@ -83,7 +83,7 @@ class Tokenizer:
         )
         self.decimal_point_found = False
         self.fancy_numeric: str = ""
-        self.keywords = ["var", "if"]
+        self.keywords = ["var", "if", "else", "print"]
         self._i = 0
         self._string = ""
         self.char = ""
