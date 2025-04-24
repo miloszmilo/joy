@@ -2,7 +2,13 @@ from collections import deque
 from typing import Callable, override
 
 from src.exceptions.ExpressionError import ExpressionError
-from src.joyTypes.Symbol import Symbol, SymbolType, binary_operators, unary_operators
+from src.joyTypes.Symbol import (
+    Symbol,
+    SymbolType,
+    binary_operators,
+    keywords,
+    unary_operators,
+)
 from src.joyTypes.Token import Token, TokenType
 from src.tokenizer import Tokenizer
 
@@ -76,8 +82,12 @@ class Evaluator:
                     # assign value
                     self.variables[c.token] = 0.0
 
-            if c.token not in binary_operators.keys():
-                raise ExpressionError(f"Symbol {c} is not a valid symbol")
+            if (
+                c.token not in binary_operators.keys()
+                and c.token not in keywords.keys()
+                and c.type == TokenType.OPERATOR
+            ):
+                raise ExpressionError(f"Symbol {c} is not a valid symbol.")
 
             new_operator = Symbol(c.token, SymbolType.OPERATOR, 2)
             if (c.token == "-" or c.token == "+") and (
@@ -149,8 +159,8 @@ class Evaluator:
                 previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
                 continue
 
-            if c not in binary_operators.keys():
-                raise ExpressionError(f"Symbol {c} is not a valid symbol")
+            if c not in binary_operators.keys() and c not in keywords.keys():
+                raise ExpressionError(f"Symbol {c} is not a valid symbol.")
 
             new_operator = Symbol(c, SymbolType.OPERATOR, 2)
             if (c == "-" or c == "+") and (

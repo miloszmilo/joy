@@ -7,6 +7,7 @@ class SymbolType(Enum):
     OPERATOR = "operator"
     PARENTHESIS_OPEN = "parenthesis_open"
     PARENTHESIS_CLOSE = "parenthesis_close"
+    KEYWORD = "keyword"
     UNKNOWN = None
 
 
@@ -54,6 +55,7 @@ class Symbol:
 
 
 binary_operators: dict[str, Symbol] = {
+    "=": Symbol("=", SymbolType.OPERATOR, 2, 3),
     "*": Symbol("*", SymbolType.OPERATOR, 2, 2),
     "/": Symbol("/", SymbolType.OPERATOR, 2, 2),
     "%": Symbol("%", SymbolType.OPERATOR, 2, 2),
@@ -65,3 +67,5 @@ unary_operators: dict[str, Symbol] = {
     "-": Symbol("-", SymbolType.OPERATOR, 1, 100),
     "+": Symbol("+", SymbolType.OPERATOR, 1, 100),
 }
+
+keywords: dict[str, Symbol] = {"var": Symbol("var", SymbolType.KEYWORD, 1, 5)}
