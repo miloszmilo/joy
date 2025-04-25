@@ -73,14 +73,27 @@ class Evaluator:
                 previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
                 continue
 
-            if c.type == TokenType.KEYWORD:
-                print("Is keyword")
-                if c.token == "var":
-                    print("Is var")
-                    # Read next token
-                    # get it's name
-                    # assign value
-                    self.variables[c.token] = 0.0
+            if c.type == TokenType.SYMBOL and c.token not in self.variables:
+                self.variables[c.token] = 0.0
+                _sym = Symbol(str(c.token), SymbolType.SYMBOL, 0)
+                output_stack.append(_sym)
+                previous_symbol = _sym
+                continue
+
+            if (
+                c.type == TokenType.OPERATOR
+                and c.token == "="
+                and previous_symbol.type == SymbolType.SYMBOL
+            ):
+                _sym = Symbol(str(c.token), SymbolType.ASSIGNMENT, 0)
+                holding_stack.append(_sym)
+                previous_symbol = _sym
+                continue
+
+            if c.type == TokenType.OPERATOR and c.token == "=":
+                raise ExpressionError(
+                    f"Got equals without symbol name {previous_symbol.__repr__()}."
+                )
 
             if (
                 c.token not in binary_operators.keys()
@@ -125,79 +138,6 @@ class Evaluator:
 
         return output_stack
 
-    def _create_rpn_from(self, code_line: str = "") -> deque[Symbol]:
-        holding_stack: deque[Symbol] = deque()
-        output_stack: deque[Symbol] = deque()
-        previous_symbol: Symbol = Symbol("0", SymbolType.NUMBER, 0)
-
-        for i, c in enumerate(code_line.strip().replace(" ", "")):
-            if c.isdigit():
-                _sym = Symbol(c, SymbolType.NUMBER, 0)
-                output_stack.append(_sym)
-                previous_symbol = _sym
-                continue
-
-            if c == "(":
-                _sym = Symbol(c, SymbolType.PARENTHESIS_OPEN, 0)
-                holding_stack.appendleft(_sym)
-                previous_symbol = _sym
-                continue
-
-            if c == ")":
-                while (
-                    holding_stack
-                    and holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
-                ):
-                    output_stack.append(holding_stack.popleft())
-                if not holding_stack:
-                    raise ExpressionError("Parenthesis missmatched")
-                if (
-                    holding_stack
-                    and holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
-                ):
-                    _ = holding_stack.popleft()
-                previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
-                continue
-
-            if c not in binary_operators.keys() and c not in keywords.keys():
-                raise ExpressionError(f"Symbol {c} is not a valid symbol.")
-
-            new_operator = Symbol(c, SymbolType.OPERATOR, 2)
-            if (c == "-" or c == "+") and (
-                previous_symbol.type
-                not in [
-                    SymbolType.NUMBER,
-                    SymbolType.PARENTHESIS_CLOSE,
-                ]
-                or i == 0
-            ):
-                new_operator.precedence = MAX_PRECEDENCE
-                new_operator.argument_count = 1
-
-            while (
-                holding_stack and holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
-            ):
-                if holding_stack[0].type != SymbolType.OPERATOR:
-                    break
-
-                if holding_stack[0].precedence >= new_operator.precedence:
-                    _sym = holding_stack.popleft()
-                    output_stack.append(_sym)
-                    continue
-                break
-            _sym = Symbol(
-                c,
-                SymbolType.OPERATOR,
-                new_operator.argument_count,
-                new_operator.precedence,
-            )
-            holding_stack.appendleft(_sym)
-            previous_symbol = _sym
-        while holding_stack:
-            output_stack.append(holding_stack.popleft())
-
-        return output_stack
-
     def _solve_rpn(self, stack: deque[Symbol]) -> float:
         output: deque[float] = deque()
 
@@ -214,6 +154,14 @@ class Evaluator:
                             f"Expression invalid, expected {symbol.argument_count} got {len(output)}, left {symbol.argument_count - len(args)} {symbol}"
                         )
                     args.append(output.popleft())
+
+            if symbol.type == SymbolType.SYMBOL:
+                # x + 3
+                # or x = 3
+                pass
+
+            if symbol.type == SymbolType.ASSIGNMENT:
+                pass
 
             result: float = 0
             if symbol.argument_count == 2:

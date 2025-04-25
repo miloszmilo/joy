@@ -8,6 +8,8 @@ class SymbolType(Enum):
     PARENTHESIS_OPEN = "parenthesis_open"
     PARENTHESIS_CLOSE = "parenthesis_close"
     KEYWORD = "keyword"
+    ASSIGNMENT = "assignment"
+    SYMBOL = "symbol"
     UNKNOWN = None
 
 

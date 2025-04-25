@@ -201,7 +201,20 @@ def test_functions():
 
 def test_variable():
     eval = Evaluator()
-    expr = "var x = 4;"
+    expr = "x = 4"
+    # tokenizer = Tokenizer()
+    # tokens = tokenizer.tokenize(expr)
+    # rpn = eval._create_rpn_from_tokens(tokens)
+    # expected_rpn = deque(
+    #     [
+    #         Symbol("x", SymbolType.SYMBOL, 0),
+    #         Symbol("4.0", SymbolType.NUMBER, 0),
+    #         Symbol("=", SymbolType.ASSIGNMENT, 0),
+    #     ]
+    # )
+    # assert rpn == expected_rpn, f"should create rpn from {expr} to {expected_rpn}"
+    #
+    # eval = Evaluator()
     result = eval.evaluate(expr)
 
     print(result)
