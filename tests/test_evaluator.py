@@ -199,26 +199,24 @@ def test_functions():
         _res = eval.evaluate(expr)
 
 
-def test_variable():
+def test_add_with_variable():
+    eval = Evaluator()
+    expr = "x + 4"
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    rpn = eval._create_rpn_from_tokens(tokens)
+    expected_rpn = deque(
+        [
+            Symbol("x", SymbolType.SYMBOL, 0),
+            Symbol("4.0", SymbolType.NUMBER, 0),
+            Symbol("+", SymbolType.OPERATOR, 2),
+        ]
+    )
+    assert rpn == expected_rpn, f"should create rpn from {expr} to {expected_rpn}"
+
+
+def test_variable_evaluate():
     eval = Evaluator()
     expr = "x = 4"
-    # tokenizer = Tokenizer()
-    # tokens = tokenizer.tokenize(expr)
-    # rpn = eval._create_rpn_from_tokens(tokens)
-    # expected_rpn = deque(
-    #     [
-    #         Symbol("x", SymbolType.SYMBOL, 0),
-    #         Symbol("4.0", SymbolType.NUMBER, 0),
-    #         Symbol("=", SymbolType.ASSIGNMENT, 0),
-    #     ]
-    # )
-    # assert rpn == expected_rpn, f"should create rpn from {expr} to {expected_rpn}"
-    #
-    # eval = Evaluator()
-    result = eval.evaluate(expr)
-
-    print(result)
-
-    expected_result = 4
-
-    assert result == expected_result
+    with pytest.raises(ExpressionError):
+        _res = eval.evaluate(expr)

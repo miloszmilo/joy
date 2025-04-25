@@ -15,6 +15,7 @@ class TokenType(Enum):
     END_OF_STATEMENT = "end_of_statement"
     SEPARATOR = "separator"
     KEYWORD = "keyword"
+    ASSIGNMENT = "assignment"
 
 
 class Token:

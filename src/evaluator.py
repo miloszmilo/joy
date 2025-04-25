@@ -73,7 +73,7 @@ class Evaluator:
                 previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
                 continue
 
-            if c.type == TokenType.SYMBOL and c.token not in self.variables:
+            if c.type == TokenType.SYMBOL:
                 self.variables[c.token] = 0.0
                 _sym = Symbol(str(c.token), SymbolType.SYMBOL, 0)
                 output_stack.append(_sym)
@@ -108,6 +108,7 @@ class Evaluator:
                 not in [
                     SymbolType.NUMBER,
                     SymbolType.PARENTHESIS_CLOSE,
+                    SymbolType.SYMBOL,
                 ]
                 or i == 0
             ):
@@ -154,14 +155,6 @@ class Evaluator:
                             f"Expression invalid, expected {symbol.argument_count} got {len(output)}, left {symbol.argument_count - len(args)} {symbol}"
                         )
                     args.append(output.popleft())
-
-            if symbol.type == SymbolType.SYMBOL:
-                # x + 3
-                # or x = 3
-                pass
-
-            if symbol.type == SymbolType.ASSIGNMENT:
-                pass
 
             result: float = 0
             if symbol.argument_count == 2:
