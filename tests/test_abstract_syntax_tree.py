@@ -8,15 +8,33 @@ def test_ast():
     assert isinstance(ast, AbstractSyntaxTree)
 
 
+def test_ast_hello():
+    ast = AbstractSyntaxTree()
+    file_path = "examples/hello.joy"
+    ast.parse(file_path)
+
+    expected_result = AbstractSyntaxTree(
+        Node(
+            Token("print", TokenType.KEYWORD),
+            Node(Token('"Hello, World!"', TokenType.STRING)),
+        )
+    )
+
+    assert ast == expected_result
+
+
 def test_ast_from_var():
     ast = AbstractSyntaxTree()
     expr = "var x = 4;"
-    ast.parse(expr)
+    ast._parse_line(expr)
 
     expected_result = AbstractSyntaxTree(
         Node(
             Token("=", TokenType.ASSIGNMENT),
-            Node(Token("x", TokenType.SYMBOL)),
+            Node(
+                Token("var", TokenType.KEYWORD),
+                right=Node(Token("x", TokenType.SYMBOL)),
+            ),
             Node(Token("4", TokenType.NUMBER)),
         )
     )
@@ -30,7 +48,7 @@ def test_ast_from_var_and_expr():
             var x = 4 + 3 + 2 + 1;
             var y = x + 1;
             """
-    ast.parse(expr)
+    ast._parse_line(expr)
 
     expected_result = AbstractSyntaxTree(
         [
@@ -42,11 +60,7 @@ def test_ast_from_var_and_expr():
             Node(
                 Token("=", TokenType.ASSIGNMENT),
                 Node(Token("y", TokenType.SYMBOL)),
-                Node(
-                    Token("+", TokenType.OPERATOR),
-                    Token("x", TokenType.SYMBOL),
-                    Token("1", TokenType.NUMBER),
-                ),
+                Node("x+1", TokenType.EXPRESSION),
             ),
         ]
     )
