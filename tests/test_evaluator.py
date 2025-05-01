@@ -350,3 +350,35 @@ def test_if():
     result = eval.evaluate(expr)
     expected_result = 1.0
     assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_if_false():
+    eval = Evaluator(variables={"x": 4.0})
+    expr = "if (x < 3)"
+    result = eval.evaluate(expr)
+    expected_result = 0.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_if_body():
+    eval = Evaluator(variables={"x": 4.0})
+    expr = """if (x > 3) {
+        x = x + 1
+    }"""
+    _ = eval.evaluate(expr)
+    expected_variables = {"x": 5.0}
+    assert eval.variables == expected_variables, (
+        f"should evaluate {expr} to update variable {expected_variables}"
+    )
+
+
+def test_if_body_false():
+    eval = Evaluator(variables={"x": 4.0})
+    expr = """if (x < 3) {
+        x = x + 1
+    }"""
+    _ = eval.evaluate(expr)
+    expected_variables = {"x": 4.0}
+    assert eval.variables == expected_variables, (
+        f"should evaluate {expr} to not update variable {expected_variables}"
+    )

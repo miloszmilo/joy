@@ -408,3 +408,107 @@ def test_greater_than_or_equal():
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_if():
+    tokenizer = Tokenizer()
+    expr = "if (4 > 5) {}"
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("if", TokenType.KEYWORD),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("4", TokenType.NUMBER, 4),
+        Token(">", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("{", TokenType.SCOPE_OPEN),
+        Token("}", TokenType.SCOPE_CLOSE),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_if_with_body():
+    tokenizer = Tokenizer()
+    expr = """if (4 > 5) {
+        var x = 4
+    }"""
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("if", TokenType.KEYWORD),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("4", TokenType.NUMBER, 4),
+        Token(">", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("{", TokenType.SCOPE_OPEN),
+        Token("var", TokenType.KEYWORD),
+        Token("x", TokenType.SYMBOL),
+        Token("=", TokenType.OPERATOR),
+        Token("4", TokenType.NUMBER, 4),
+        Token("}", TokenType.SCOPE_CLOSE),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_if_with_body_else():
+    tokenizer = Tokenizer()
+    expr = """if (4 > 5) {
+        var x = 4
+    } else {
+        var x = 5
+    }"""
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("if", TokenType.KEYWORD),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("4", TokenType.NUMBER, 4),
+        Token(">", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("{", TokenType.SCOPE_OPEN),
+        Token("var", TokenType.KEYWORD),
+        Token("x", TokenType.SYMBOL),
+        Token("=", TokenType.OPERATOR),
+        Token("4", TokenType.NUMBER, 4),
+        Token("}", TokenType.SCOPE_CLOSE),
+        Token("else", TokenType.KEYWORD),
+        Token("{", TokenType.SCOPE_OPEN),
+        Token("var", TokenType.KEYWORD),
+        Token("x", TokenType.SYMBOL),
+        Token("=", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+        Token("}", TokenType.SCOPE_CLOSE),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_while():
+    tokenizer = Tokenizer()
+    expr = """while (x > 5) {
+    x = x + 1
+    }"""
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("while", TokenType.KEYWORD),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("x", TokenType.SYMBOL),
+        Token(">", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("{", TokenType.SCOPE_OPEN),
+        Token("x", TokenType.SYMBOL),
+        Token("=", TokenType.OPERATOR),
+        Token("x", TokenType.SYMBOL),
+        Token("+", TokenType.OPERATOR),
+        Token("1", TokenType.NUMBER, 1),
+        Token("}", TokenType.SCOPE_CLOSE),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"

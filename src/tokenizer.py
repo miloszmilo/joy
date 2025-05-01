@@ -83,7 +83,7 @@ class Tokenizer:
         )
         self.decimal_point_found = False
         self.fancy_numeric: str = ""
-        self.keywords = ["var", "if", "else", "print"]
+        self.keywords = ["var", "if", "else", "print", "while"]
         self._i = 0
         self._string = ""
         self.char = ""
@@ -107,7 +107,7 @@ class Tokenizer:
             )
         if self.scope_balance != 0:
             raise TokenizerValueError(
-                f'Scope "{" & "}" not balanced. Expected {self.scope_balance} more.'
+                f'Scope "{{" & "}}" not balanced. Expected {self.scope_balance} more.'
             )
         if isinstance(self.current_state, StringState):
             raise TokenizerValueError("Missing quotation marks.")

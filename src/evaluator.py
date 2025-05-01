@@ -92,20 +92,6 @@ class Evaluator:
                 output_stack.append(_sym)
                 previous_symbol = _sym
                 continue
-                # if c.token == "var":
-                #     previous_symbol = Symbol(str(c.token), SymbolType.KEYWORD, 0)
-                #     # Or instead of doing that
-                #     # save variable name
-                #     # and then assign whatever we solve the right
-                #     # to the variable name
-                #     # after the loop ends
-                #     while True:
-                #         # Get symbol name
-                #         # get =
-                #         # get value
-                #         pass
-                #         break
-                #     pass
 
             if (
                 c.type == TokenType.OPERATOR
