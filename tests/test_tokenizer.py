@@ -268,3 +268,55 @@ def test_tokenizer_var():
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
+
+def test_tokenizer_var_value():
+    tokenizer = Tokenizer()
+    expr = 'var x = 4'
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("var", TokenType.KEYWORD),
+        Token("x", TokenType.SYMBOL),
+        Token("=", TokenType.OPERATOR),
+        Token("4", TokenType.NUMBER, 4),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+def test_tokenizer_var_expression():
+    tokenizer = Tokenizer()
+    expr = 'var x = 4 + 5 + 12'
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("var", TokenType.KEYWORD),
+        Token("x", TokenType.SYMBOL),
+        Token("=", TokenType.OPERATOR),
+        Token("4", TokenType.NUMBER, 4),
+        Token("+", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+        Token("+", TokenType.OPERATOR),
+        Token("12", TokenType.NUMBER, 12),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+def test_tokenizer_var_expression_parenthesis():
+    tokenizer = Tokenizer()
+    expr = 'var x = 4 + (5 + 12)'
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("var", TokenType.KEYWORD),
+        Token("x", TokenType.SYMBOL),
+        Token("=", TokenType.OPERATOR),
+        Token("4", TokenType.NUMBER, 4),
+        Token("+", TokenType.OPERATOR),
+        Token("(", TokenType.PARENTHESIS_OPEN),
+        Token("5", TokenType.NUMBER, 5),
+        Token("+", TokenType.OPERATOR),
+        Token("12", TokenType.NUMBER, 12),
+        Token(")", TokenType.PARENTHESIS_CLOSE),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"

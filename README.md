@@ -138,8 +138,8 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 
 - [x] Create Math Solver
 - [x] Create Tokenizer
-- [ ] Add keywords
-- [ ] Create Abstract Syntax Tree
+- [x] Add keywords
+- [/] Create Abstract Syntax Tree
 - [ ] Run code inside python
 
 See the [open issues](https://github.com/miloszmilo/joy/issues) for a full list of proposed features (and known issues).
