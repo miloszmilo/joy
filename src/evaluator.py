@@ -17,7 +17,7 @@ MAX_PRECEDENCE = 100
 
 class Evaluator:
     operator_stack: list[Token]
-    variables: dict[str, float | str]
+    variables: dict[str, float]
 
     operations: dict[str, Callable[[float, float], float]] = {
         "/": lambda x, y: x / y,
@@ -34,7 +34,7 @@ class Evaluator:
     def __init__(
         self,
         operator_stack: list[Token] = [],
-        variables: dict[str, float | str] = {None: None},
+        variables: dict[str, float] = {None: None},
     ):
         self.operator_stack = operator_stack
         self.variables = variables
@@ -74,7 +74,8 @@ class Evaluator:
                 continue
 
             if c.type == TokenType.SYMBOL:
-                self.variables[c.token] = 0.0
+                if c.token not in self.variables:
+                    self.variables[c.token] = 0.0
                 _sym = Symbol(str(c.token), SymbolType.SYMBOL, 0)
                 output_stack.append(_sym)
                 previous_symbol = _sym
@@ -155,6 +156,11 @@ class Evaluator:
                             f"Expression invalid, expected {symbol.argument_count} got {len(output)}, left {symbol.argument_count - len(args)} {symbol}"
                         )
                     args.append(output.popleft())
+            if symbol.type == SymbolType.SYMBOL:
+                value = self.variables.get(symbol.value, 0)
+                output.appendleft(value)
+                continue
+                # Add to stack?
 
             result: float = 0
             if symbol.argument_count == 2:

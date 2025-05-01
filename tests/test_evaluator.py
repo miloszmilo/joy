@@ -214,9 +214,24 @@ def test_add_with_variable():
     )
     assert rpn == expected_rpn, f"should create rpn from {expr} to {expected_rpn}"
 
+    eval.variables = {"x": 3}
+    result = eval.evaluate(expr)
+    expected_result = 7
+
+    assert result == expected_result
+
 
 def test_variable_evaluate():
     eval = Evaluator()
     expr = "x = 4"
     with pytest.raises(ExpressionError):
         _res = eval.evaluate(expr)
+
+
+def test_add_only_variables():
+    eval = Evaluator()
+    expr = "x + y"
+    eval.variables = {"x": 4, "y": 3}
+    rpn = eval.evaluate(expr)
+    expected_result = 7
+    assert rpn == expected_result, f"should evaluate {expr} to {expected_result}"
