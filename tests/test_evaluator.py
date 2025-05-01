@@ -292,7 +292,7 @@ def test_less_than_false():
     eval = Evaluator()
     expr = "3 < 3"
     result = eval.evaluate(expr)
-    expected_result = 1.0
+    expected_result = 0.0
     assert result == expected_result, f"should evaluate {expr} to {expected_result}"
 
 
@@ -306,7 +306,7 @@ def test_less_than_or_equal():
 
 def test_less_than_or_equal_false():
     eval = Evaluator()
-    expr = "3 <= 4"
+    expr = "3 <= 2"
     result = eval.evaluate(expr)
     expected_result = 0.0
     assert result == expected_result, f"should evaluate {expr} to {expected_result}"

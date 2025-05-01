@@ -20,6 +20,12 @@ class Evaluator:
     variables: dict[str, float]
 
     operations: dict[str, Callable[[float, float], float]] = {
+        "!=": lambda x, y: int(x != y),
+        "==": lambda x, y: int(x == y),
+        "<=": lambda x, y: int(x <= y),
+        "<": lambda x, y: int(x < y),
+        ">=": lambda x, y: int(x >= y),
+        ">": lambda x, y: int(x > y),
         "/": lambda x, y: x / y,
         "*": lambda x, y: x * y,
         "+": lambda x, y: x + y,
