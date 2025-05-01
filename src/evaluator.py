@@ -33,11 +33,11 @@ class Evaluator:
 
     def __init__(
         self,
-        operator_stack: list[Token] = [],
-        variables: dict[str, float] = {None: None},
+        operator_stack: list[Token] | None = None,
+        variables: dict[str, float] | None = None,
     ):
-        self.operator_stack = operator_stack
-        self.variables = variables
+        self.operator_stack = operator_stack if operator_stack else []
+        self.variables = variables if variables else {}
 
     def _create_rpn_from_tokens(self, tokens: list[Token]) -> deque[Symbol]:
         holding_stack: deque[Symbol] = deque()
@@ -80,6 +80,26 @@ class Evaluator:
                 output_stack.append(_sym)
                 previous_symbol = _sym
                 continue
+
+            if c.type == TokenType.KEYWORD:
+                _sym = Symbol(str(c.token), SymbolType.KEYWORD, 0)
+                output_stack.append(_sym)
+                previous_symbol = _sym
+                continue
+                # if c.token == "var":
+                #     previous_symbol = Symbol(str(c.token), SymbolType.KEYWORD, 0)
+                #     # Or instead of doing that
+                #     # save variable name
+                #     # and then assign whatever we solve the right
+                #     # to the variable name
+                #     # after the loop ends
+                #     while True:
+                #         # Get symbol name
+                #         # get =
+                #         # get value
+                #         pass
+                #         break
+                #     pass
 
             if (
                 c.type == TokenType.OPERATOR
@@ -142,13 +162,23 @@ class Evaluator:
 
     def _solve_rpn(self, stack: deque[Symbol]) -> float:
         output: deque[float] = deque()
+        _is_var = False
+        _variable_name = None
+        _is_assignment = False
 
         for symbol in stack:
             args: list[float] = []
+            if symbol.type == SymbolType.KEYWORD:
+                if symbol.value == "var":
+                    _is_var = True
+                continue
             if symbol.type == SymbolType.NUMBER:
                 output.appendleft(float(symbol.value))
                 continue
             if symbol.type == SymbolType.OPERATOR:
+                if symbol.value == "=":
+                    _is_assignment = True
+                    continue
                 args = []
                 for _ in range(symbol.argument_count):
                     if not output:
@@ -157,10 +187,16 @@ class Evaluator:
                         )
                     args.append(output.popleft())
             if symbol.type == SymbolType.SYMBOL:
-                value = self.variables.get(symbol.value, 0)
-                output.appendleft(value)
+                if symbol.value in self.variables and not _is_var:
+                    value = self.variables[symbol.value]
+                    output.appendleft(value)
+                    continue
+                if _variable_name and _is_var:
+                    raise ExpressionError(
+                        f"Got two variable names in assignment {symbol}"
+                    )
+                _variable_name = symbol.value
                 continue
-                # Add to stack?
 
             result: float = 0
             if symbol.argument_count == 2:
@@ -180,10 +216,21 @@ class Evaluator:
                     )
                 if symbol.value in self.unary_operations:
                     result = self.unary_operations[symbol.value](args[0])
+
+            if symbol.argument_count == 0:
+                if symbol.value == "var":
+                    _is_var = True
+                    continue
+                if symbol.value == "=":
+                    _is_assignment = True
+                    continue
             output.appendleft(result)
 
         if len(output) != 1:
             raise ExpressionError(f"Expression led to no result {output}")
+        if len(output) == 1 and _is_var and _variable_name and _is_assignment:
+            self.variables[_variable_name] = output.popleft()
+            return self.variables[_variable_name]
         return output.popleft()
 
     def evaluate(self, code_line: str = "") -> float:

@@ -192,11 +192,12 @@ def test_rpn_notation_complex():
     )
 
 
-def test_functions():
+def test_functions_fail():
     eval = Evaluator()
     expr = "f(1,2)"
     with pytest.raises(ExpressionError):
         _res = eval.evaluate(expr)
+    eval = Evaluator()
 
 
 def test_add_with_variable():
@@ -232,6 +233,16 @@ def test_add_only_variables():
     eval = Evaluator()
     expr = "x + y"
     eval.variables = {"x": 4, "y": 3}
-    rpn = eval.evaluate(expr)
+    result = eval.evaluate(expr)
     expected_result = 7
-    assert rpn == expected_result, f"should evaluate {expr} to {expected_result}"
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_var_expression():
+    eval = Evaluator()
+    expr = "var x = 2 + 3"
+    _ = eval.evaluate(expr)
+    expected_result = {"x": 5}
+    assert eval.variables == expected_result, (
+        f"should evaluate {expr} to {expected_result}"
+    )
