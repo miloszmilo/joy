@@ -57,6 +57,12 @@ class Symbol:
 
 
 binary_operators: dict[str, Symbol] = {
+    "!=": Symbol("==", SymbolType.OPERATOR, 2, 9),
+    "==": Symbol("==", SymbolType.OPERATOR, 2, 8),
+    "<=": Symbol("<=", SymbolType.OPERATOR, 2, 7),
+    "<": Symbol("<", SymbolType.OPERATOR, 2, 6),
+    ">=": Symbol(">=", SymbolType.OPERATOR, 2, 5),
+    ">": Symbol(">", SymbolType.OPERATOR, 2, 4),
     "=": Symbol("=", SymbolType.OPERATOR, 2, 3),
     "*": Symbol("*", SymbolType.OPERATOR, 2, 2),
     "/": Symbol("/", SymbolType.OPERATOR, 2, 2),

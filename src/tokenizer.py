@@ -72,7 +72,7 @@ class Tokenizer:
             ">",
             "~",
         ]
-        self.operators = ["+", "-", "/", "*", "="]
+        self.operators = ["+", "-", "/", "*", "=", ">", ">=", "<", "<=", "==", "!="]
         self.parenthesis_balance = 0
         self.scope_balance = 0
         self._numbers: str = ".0123456789"

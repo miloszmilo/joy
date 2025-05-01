@@ -246,3 +246,107 @@ def test_var_expression():
     assert eval.variables == expected_result, (
         f"should evaluate {expr} to {expected_result}"
     )
+
+
+def test_equal():
+    eval = Evaluator()
+    expr = "3 == 3"
+    result = eval.evaluate(expr)
+    expected_result = 1.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_equal_false():
+    eval = Evaluator()
+    expr = "3 == 4"
+    result = eval.evaluate(expr)
+    expected_result = 0.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_not_equal():
+    eval = Evaluator()
+    expr = "3 != 4"
+    result = eval.evaluate(expr)
+    expected_result = 1.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_not_equal_false():
+    eval = Evaluator()
+    expr = "3 != 3"
+    result = eval.evaluate(expr)
+    expected_result = 0.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_less_than():
+    eval = Evaluator()
+    expr = "3 < 4"
+    result = eval.evaluate(expr)
+    expected_result = 1.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_less_than_false():
+    eval = Evaluator()
+    expr = "3 < 3"
+    result = eval.evaluate(expr)
+    expected_result = 1.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_less_than_or_equal():
+    eval = Evaluator()
+    expr = "3 <= 3"
+    result = eval.evaluate(expr)
+    expected_result = 1.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_less_than_or_equal_false():
+    eval = Evaluator()
+    expr = "3 <= 4"
+    result = eval.evaluate(expr)
+    expected_result = 0.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_greater_than_or_equal():
+    eval = Evaluator()
+    expr = "3 >= 2"
+    result = eval.evaluate(expr)
+    expected_result = 1.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_greater_than_or_equal_false():
+    eval = Evaluator()
+    expr = "3 >= 4"
+    result = eval.evaluate(expr)
+    expected_result = 0.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_greater_than():
+    eval = Evaluator()
+    expr = "3 > 2"
+    result = eval.evaluate(expr)
+    expected_result = 1.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_greater_than_false():
+    eval = Evaluator()
+    expr = "3 > 4"
+    result = eval.evaluate(expr)
+    expected_result = 0.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
+
+
+def test_if():
+    eval = Evaluator(variables={"x": 4.0})
+    expr = "if (x > 3)"
+    result = eval.evaluate(expr)
+    expected_result = 1.0
+    assert result == expected_result, f"should evaluate {expr} to {expected_result}"

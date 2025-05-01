@@ -258,9 +258,10 @@ def test_tokenizer_string_unfinished():
     with pytest.raises(TokenizerValueError):
         _result = tokenizer.tokenize(expr)
 
+
 def test_tokenizer_var():
     tokenizer = Tokenizer()
-    expr = 'var'
+    expr = "var"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -269,9 +270,10 @@ def test_tokenizer_var():
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
 
+
 def test_tokenizer_var_value():
     tokenizer = Tokenizer()
-    expr = 'var x = 4'
+    expr = "var x = 4"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -283,9 +285,10 @@ def test_tokenizer_var_value():
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
 
+
 def test_tokenizer_var_expression():
     tokenizer = Tokenizer()
-    expr = 'var x = 4 + 5 + 12'
+    expr = "var x = 4 + 5 + 12"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -301,9 +304,10 @@ def test_tokenizer_var_expression():
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
 
+
 def test_tokenizer_var_expression_parenthesis():
     tokenizer = Tokenizer()
-    expr = 'var x = 4 + (5 + 12)'
+    expr = "var x = 4 + (5 + 12)"
     result = tokenizer.tokenize(expr)
 
     expected_result = [
@@ -317,6 +321,90 @@ def test_tokenizer_var_expression_parenthesis():
         Token("+", TokenType.OPERATOR),
         Token("12", TokenType.NUMBER, 12),
         Token(")", TokenType.PARENTHESIS_CLOSE),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_equals():
+    tokenizer = Tokenizer()
+    expr = "4 == 5"
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("4", TokenType.NUMBER, 4),
+        Token("==", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_not_equals():
+    tokenizer = Tokenizer()
+    expr = "4 != 5"
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("4", TokenType.NUMBER, 4),
+        Token("!=", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_less_than():
+    tokenizer = Tokenizer()
+    expr = "4 < 5"
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("4", TokenType.NUMBER, 4),
+        Token("<", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_less_than_or_equal():
+    tokenizer = Tokenizer()
+    expr = "4 <= 5"
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("4", TokenType.NUMBER, 4),
+        Token("<=", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_greater_than():
+    tokenizer = Tokenizer()
+    expr = "4 > 5"
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("4", TokenType.NUMBER, 4),
+        Token(">", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
+    ]
+
+    assert result == expected_result, f"should tokenize {expr} got {result}"
+
+
+def test_greater_than_or_equal():
+    tokenizer = Tokenizer()
+    expr = "4 >= 5"
+    result = tokenizer.tokenize(expr)
+
+    expected_result = [
+        Token("4", TokenType.NUMBER, 4),
+        Token(">=", TokenType.OPERATOR),
+        Token("5", TokenType.NUMBER, 5),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"

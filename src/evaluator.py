@@ -199,31 +199,34 @@ class Evaluator:
                 continue
 
             result: float = 0
-            if symbol.argument_count == 2:
-                if symbol.value not in binary_operators:
+            match symbol.argument_count:
+                case 2:
+                    if symbol.value not in binary_operators:
+                        raise ExpressionError(
+                            f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
+                        )
+                    if symbol.value == "(":
+                        continue
+                    if symbol.value in self.operations:
+                        result = self.operations[symbol.value](args[1], args[0])
+                case 1:
+                    if symbol.value not in unary_operators.keys():
+                        raise ExpressionError(
+                            f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
+                        )
+                    if symbol.value in self.unary_operations:
+                        result = self.unary_operations[symbol.value](args[0])
+                case 0:
+                    if symbol.value == "var":
+                        _is_var = True
+                        continue
+                    if symbol.value == "=":
+                        _is_assignment = True
+                        continue
+                case _:
                     raise ExpressionError(
-                        f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
+                        f"Symbol {symbol} expected {symbol.argument_count}"
                     )
-                if symbol.value == "(":
-                    continue
-                if symbol.value in self.operations:
-                    result = self.operations[symbol.value](args[1], args[0])
-
-            if symbol.argument_count == 1:
-                if symbol.value not in unary_operators.keys():
-                    raise ExpressionError(
-                        f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
-                    )
-                if symbol.value in self.unary_operations:
-                    result = self.unary_operations[symbol.value](args[0])
-
-            if symbol.argument_count == 0:
-                if symbol.value == "var":
-                    _is_var = True
-                    continue
-                if symbol.value == "=":
-                    _is_assignment = True
-                    continue
             output.appendleft(result)
 
         if len(output) != 1:
