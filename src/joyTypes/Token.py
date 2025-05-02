@@ -5,6 +5,7 @@ from typing import override
 class TokenType(Enum):
     NUMBER = "number"
     OPERATOR = "operator"
+    COMPARISON_OPERATOR = "comparison_operator"
     STRING = "string"
     PARENTHESIS_OPEN = "parenthesis_open"
     PARENTHESIS_CLOSE = "parenthesis_close"

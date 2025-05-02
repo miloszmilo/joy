@@ -1,4 +1,4 @@
-from src.joyTypes.AST_Nodes import IfStatement, Node
+from src.joyTypes.AST_Nodes import Comparison, IfStatement, Node
 from src.joyTypes.Token import Token, TokenType
 
 
@@ -30,13 +30,16 @@ class Parser:
         return self.parse_expression()
 
     def parse_if_statement(self) -> Node:
-        self.consume(TokenType.PARENTHESIS_OPEN)
+        _ = self.consume(TokenType.PARENTHESIS_OPEN)
         condition = self.parse_expression()
-        self.consume(TokenType.PARENTHESIS_CLOSE)
+        _ = self.consume(TokenType.PARENTHESIS_CLOSE)
 
-        self.consume(TokenType.SCOPE_OPEN)
-        body = self.parse_statements()
-        self.consume(TokenType.SCOPE_CLOSE)
+        _ = self.consume(TokenType.SCOPE_OPEN)
+        # If body is empty, continue
+        body = None
+        if not self.match(TokenType.SCOPE_CLOSE):
+            body = self.parse_statements()
+        _ = self.consume(TokenType.SCOPE_CLOSE)
 
         else_branch: Node | None = None
         if self.match(TokenType.KEYWORD, "else"):
@@ -59,11 +62,29 @@ class Parser:
         pass
 
     def parse_expression(self) -> Node:
-        pass
-        """
-        given stuff like 3 < 2, y > x, y != 0
-        create comparion node
-        """
+        if not self.match(TokenType.NUMBER) and self.match(TokenType.SYMBOL):
+            raise SyntaxError(
+                f"Expected Number or Symbol in expression, got {self.peek()}"
+            )
+        left = None
+        if self.match(TokenType.NUMBER):
+            left = self.consume(TokenType.NUMBER)
+        if self.match(TokenType.SYMBOL):
+            left = self.consume(TokenType.SYMBOL)
+
+        operator = self.consume(TokenType.COMPARISON_OPERATOR)
+
+        if not self.match(TokenType.NUMBER) and self.match(TokenType.SYMBOL):
+            raise SyntaxError(
+                f"Expected Number or Symbol in expression, got {self.peek()}"
+            )
+
+        right = None
+        if self.match(TokenType.NUMBER):
+            right = self.consume(TokenType.NUMBER)
+        if self.match(TokenType.SYMBOL):
+            right = self.consume(TokenType.SYMBOL)
+        return Comparison(left, operator, right)
 
     def match(self, type: TokenType, value: str | None = None) -> bool:
         if self.peek().type != type:
@@ -75,17 +96,18 @@ class Parser:
             return token.type == type and token.token == value
         return token.type == type
 
-    def consume(self, type: TokenType, value: str | None = None) -> bool:
+    def consume(self, type: TokenType, value: str | None = None):
         if self.peek().type != type:
             raise SyntaxError(f"Expected {type} but found {self.peek()}")
         if value and self.peek().token != value:
             raise SyntaxError(f"Expected {type}, {value} but found {self.peek()}")
         token = self.peek()
-        if value:
-            return token.type == type and token.token == value
+        if value and token.type == type and token.token == value:
+            self.advance()
+            return self.previous()
         if token.type == type:
             self.advance()
-            return True
+            return self.previous()
         raise SyntaxError(f"Expected {type} but found {self.peek()}")
 
     def peek(self) -> Token:

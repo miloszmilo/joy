@@ -37,6 +37,7 @@ class Tokenizer:
     token_current: Token
     operator_digits: list[str]
     operators: list[str]
+    comparison_operators: list[str]
     parenthesis_balance: int
     scope_balance: int
     decimal_point_found: bool
@@ -72,7 +73,8 @@ class Tokenizer:
             ">",
             "~",
         ]
-        self.operators = ["+", "-", "/", "*", "=", ">", ">=", "<", "<=", "==", "!="]
+        self.operators = ["+", "-", "/", "*", "="]
+        self.comparison_operators = [">", ">=", "<", "<=", "==", "!="]
         self.parenthesis_balance = 0
         self.scope_balance = 0
         self._numbers: str = ".0123456789"
@@ -261,7 +263,9 @@ class OperatorState(TokenizerStateBase):
     @override
     def handle(self, tokenizer: Tokenizer):
         if tokenizer.char in tokenizer.operator_digits:
-            if (tokenizer.token_string + tokenizer.char) in tokenizer.operators:
+            if (tokenizer.token_string + tokenizer.char) in tokenizer.operators or (
+                tokenizer.token_string + tokenizer.char
+            ) in tokenizer.comparison_operators:
                 tokenizer.token_string += tokenizer.char
                 tokenizer.next_char()
                 return
@@ -271,11 +275,23 @@ class OperatorState(TokenizerStateBase):
                 )
                 tokenizer.next_state = CompleteState()
                 return
+            if tokenizer.token_string in tokenizer.comparison_operators:
+                tokenizer.token_current = Token(
+                    tokenizer.token_string, TokenType.COMPARISON_OPERATOR
+                )
+                tokenizer.next_state = CompleteState()
+                return
             tokenizer.token_string += tokenizer.char
             tokenizer.next_char()
             return
         if tokenizer.token_string in tokenizer.operators:
             tokenizer.token_current = Token(tokenizer.token_string, TokenType.OPERATOR)
+            tokenizer.next_state = CompleteState()
+            return
+        if tokenizer.token_string in tokenizer.comparison_operators:
+            tokenizer.token_current = Token(
+                tokenizer.token_string, TokenType.COMPARISON_OPERATOR
+            )
             tokenizer.next_state = CompleteState()
             return
         raise TokenizerValueError(f'Unrecognized operator "{tokenizer.token_string}".')

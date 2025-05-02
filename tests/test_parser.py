@@ -35,11 +35,12 @@ def test_parse_if():
         tokens=[
             Token("(", TokenType.PARENTHESIS_OPEN),
             Token("3", TokenType.NUMBER),
-            Token("<", TokenType.OPERATOR),
+            Token("<", TokenType.COMPARISON_OPERATOR),
             Token("4", TokenType.NUMBER),
             Token(")", TokenType.PARENTHESIS_CLOSE),
             Token("{", TokenType.SCOPE_OPEN),
             Token("}", TokenType.SCOPE_CLOSE),
+            Token("EOF", TokenType.EOF),
         ]
     )
     parser.parse_if_statement()

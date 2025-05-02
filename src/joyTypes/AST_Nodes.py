@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import override
 
+from src.joyTypes.Token import Token
+
 
 class Node(ABC):
     @abstractmethod
@@ -28,6 +30,30 @@ class NumberLiteral(Expression):
     @override
     def accept(self, visitor):
         return visitor.visit_number_literal(self)
+
+
+class VariableAccess(Expression):
+    def __init__(self, value: float = 0.0) -> None:
+        self.value: float = value
+
+    @override
+    def accept(self, visitor):
+        return visitor.visit_variable_access(self)
+
+
+class Comparison(Expression):
+    left: Token
+    operator: Token
+    right: Token
+
+    def __init__(self, left: Token, operator: Token, right: Token) -> None:
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+    @override
+    def accept(self, visitor):
+        return visitor.visit_variable_access(self)
 
 
 # Statements
