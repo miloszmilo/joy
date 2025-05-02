@@ -111,6 +111,7 @@ class Tokenizer:
             )
         if isinstance(self.current_state, StringState):
             raise TokenizerValueError("Missing quotation marks.")
+        self.output.append(Token("EOF", TokenType.EOF))
         return self.output
 
 

@@ -17,6 +17,7 @@ class TokenType(Enum):
     KEYWORD = "keyword"
     ASSIGNMENT = "assignment"
     EXPRESSION = "expression"
+    EOF = "end_of_file"
 
 
 class Token:

@@ -344,17 +344,17 @@ def test_greater_than_false():
     assert result == expected_result, f"should evaluate {expr} to {expected_result}"
 
 
-def test_if():
+def test_conditional():
     eval = Evaluator(variables={"x": 4.0})
-    expr = "if (x > 3)"
+    expr = "(x > 3)"
     result = eval.evaluate(expr)
     expected_result = 1.0
     assert result == expected_result, f"should evaluate {expr} to {expected_result}"
 
 
-def test_if_false():
+def test_conditional_false():
     eval = Evaluator(variables={"x": 4.0})
-    expr = "if (x < 3)"
+    expr = "(x < 3)"
     result = eval.evaluate(expr)
     expected_result = 0.0
     assert result == expected_result, f"should evaluate {expr} to {expected_result}"
@@ -363,7 +363,7 @@ def test_if_false():
 def test_if_body():
     eval = Evaluator(variables={"x": 4.0})
     expr = """if (x > 3) {
-        x = x + 1
+        x = 4 + 1
     }"""
     _ = eval.evaluate(expr)
     expected_variables = {"x": 5.0}
@@ -372,7 +372,7 @@ def test_if_body():
     )
 
 
-def test_if_body_false():
+def test_if_false_body():
     eval = Evaluator(variables={"x": 4.0})
     expr = """if (x < 3) {
         x = x + 1

@@ -1,2 +1,0 @@
-class Keyword:
-    _: str

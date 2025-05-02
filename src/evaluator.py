@@ -1,3 +1,5 @@
+from __future__ import annotations
+from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable, override
 
@@ -127,6 +129,8 @@ class Evaluator:
             ):
                 new_operator.precedence = MAX_PRECEDENCE
                 new_operator.argument_count = 1
+            if c.token == "{" or c.token == "}":
+                new_operator.argument_count = 0
 
             while (
                 holding_stack and holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
@@ -157,12 +161,24 @@ class Evaluator:
         _is_var = False
         _variable_name = None
         _is_assignment = False
+        _is_if = False
+        _had_if = False
+        _is_condition_false = False
+        _is_reassignment = False
 
         for symbol in stack:
             args: list[float] = []
+            if _is_condition_false and symbol.value != "}":
+                continue
+            if _is_condition_false and symbol.value == "}":
+                _is_condition_false = False
+                continue
             if symbol.type == SymbolType.KEYWORD:
                 if symbol.value == "var":
                     _is_var = True
+                if symbol.value == "if":
+                    _is_if = True
+                    _had_if = True
                 continue
             if symbol.type == SymbolType.NUMBER:
                 output.appendleft(float(symbol.value))
@@ -179,8 +195,12 @@ class Evaluator:
                         )
                     args.append(output.popleft())
             if symbol.type == SymbolType.SYMBOL:
-                if symbol.value in self.variables and not _is_var:
+                if symbol.value in self.variables and (
+                    _is_assignment or _is_reassignment or _is_if
+                ):
                     value = self.variables[symbol.value]
+                    _is_reassignment = True
+                    _variable_name = symbol.value
                     output.appendleft(value)
                     continue
                 if _variable_name and _is_var:
@@ -215,17 +235,32 @@ class Evaluator:
                     if symbol.value == "=":
                         _is_assignment = True
                         continue
+                    if symbol.value in ["{", "}"]:
+                        _is_if = False
+                        continue
                 case _:
                     raise ExpressionError(
                         f"Symbol {symbol} expected {symbol.argument_count}"
                     )
+
+            if _is_if:
+                _is_condition_false = result == 0.0
+                _is_if = False
+                continue
             output.appendleft(result)
 
-        if len(output) != 1:
+        if len(output) != 1 and not _had_if:
             raise ExpressionError(f"Expression led to no result {output}")
         if len(output) == 1 and _is_var and _variable_name and _is_assignment:
             self.variables[_variable_name] = output.popleft()
             return self.variables[_variable_name]
+        print(f"Got variable name {_variable_name} and {_is_assignment} in {output}")
+        if len(output) == 1 and _variable_name and (_is_reassignment or _is_assignment):
+            print(f"Output {output[0]}")
+            self.variables[_variable_name] = output.popleft()
+            return self.variables[_variable_name]
+        if len(output) != 1 and _had_if:
+            return 0.0
         return output.popleft()
 
     def evaluate(self, code_line: str = "") -> float:
