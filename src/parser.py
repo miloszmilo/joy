@@ -5,6 +5,7 @@ from src.joyTypes.AST_Nodes import (
     Node,
     NumberLiteral,
     PrintStatement,
+    ScopeStatement,
     VariableDeclaration,
     WhileStatement,
 )
@@ -43,9 +44,8 @@ class Parser:
         _ = self.consume(TokenType.PARENTHESIS_OPEN)
         condition = self.parse_conditional()
         _ = self.consume(TokenType.PARENTHESIS_CLOSE)
-
         _ = self.consume(TokenType.SCOPE_OPEN)
-        # If body is empty, continue
+
         body = None
         if not self.match(TokenType.SCOPE_CLOSE):
             body = self.parse_statement()
@@ -78,7 +78,10 @@ class Parser:
         return VariableDeclaration(name.token, value)
 
     def parse_scope_statement(self) -> Node:
-        raise NotImplementedError
+        _ = self.consume(TokenType.SCOPE_OPEN)
+        scope = self.parse_statement()
+        _ = self.consume(TokenType.SCOPE_CLOSE)
+        return ScopeStatement(scope)
 
     def parse_conditional(self) -> Comparison:
         if not self.match(TokenType.NUMBER) and self.match(TokenType.SYMBOL):

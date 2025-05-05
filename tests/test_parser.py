@@ -1,6 +1,7 @@
 import pytest
 from src.joyTypes.AST_Nodes import (
     Comparison,
+    Expression,
     IfStatement,
     NumberLiteral,
     PrintStatement,
@@ -59,7 +60,9 @@ def test_parse_if():
             Token("3", TokenType.NUMBER),
             Token("<", TokenType.COMPARISON_OPERATOR),
             Token("4", TokenType.NUMBER),
-        )
+        ),
+        None,
+        None,
     )
     assert result == expected_result
 
@@ -153,6 +156,7 @@ def test_parse_while_body():
     )
     assert result == expected_result
 
+
 def test_parse_print():
     parser: Parser = Parser(
         tokens=[
@@ -166,4 +170,19 @@ def test_parse_print():
     result = parser.parse_statement()
     assert isinstance(result, PrintStatement)
     expected_result = PrintStatement("Hello, World!")
+    assert result == expected_result
+
+
+def test_parse_expression():
+    parser: Parser = Parser(
+        tokens=[
+            Token("2", TokenType.NUMBER),
+            Token("+", TokenType.OPERATOR),
+            Token("4", TokenType.NUMBER),
+            Token("EOF", TokenType.EOF),
+        ]
+    )
+    result = parser.parse_statement()
+    assert isinstance(result, Expression)
+    expected_result = Expression("+", "2", "4")
     assert result == expected_result
