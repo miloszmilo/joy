@@ -1,4 +1,12 @@
-from src.joyTypes.AST_Nodes import Comparison, IfStatement, Node
+from src.joyTypes.AST_Nodes import (
+    Comparison,
+    Expression,
+    IfStatement,
+    Node,
+    NumberLiteral,
+    VariableDeclaration,
+    WhileStatement,
+)
 from src.joyTypes.Token import Token, TokenType
 
 
@@ -16,29 +24,30 @@ class Parser:
             statements.append(self.parse_statement())
         return
 
-    def parse_statements(self) -> Node:
+    def parse_statement(self) -> Node:
         if self.match(TokenType.KEYWORD, "if"):
-            self.parse_if_statement()
+            return self.parse_if_statement()
         if self.match(TokenType.KEYWORD, "while"):
-            self.parse_while_statement()
+            return self.parse_while_statement()
         if self.match(TokenType.KEYWORD, "print"):
-            self.parse_print_statement()
+            return self.parse_print_statement()
         if self.match(TokenType.KEYWORD, "var"):
-            self.parse_var_statement()
+            return self.parse_var_statement()
         if self.match(TokenType.OPERATOR, "{"):
-            self.parse_scope_statement()
+            return self.parse_scope_statement()
         return self.parse_expression()
 
-    def parse_if_statement(self) -> Node:
+    def parse_if_statement(self) -> IfStatement:
+        _ = self.consume(TokenType.KEYWORD, "if")
         _ = self.consume(TokenType.PARENTHESIS_OPEN)
-        condition = self.parse_expression()
+        condition = self.parse_conditional()
         _ = self.consume(TokenType.PARENTHESIS_CLOSE)
 
         _ = self.consume(TokenType.SCOPE_OPEN)
         # If body is empty, continue
         body = None
         if not self.match(TokenType.SCOPE_CLOSE):
-            body = self.parse_statements()
+            body = self.parse_statement()
         _ = self.consume(TokenType.SCOPE_CLOSE)
 
         else_branch: Node | None = None
@@ -46,27 +55,39 @@ class Parser:
             else_branch = self.parse_statement()
         return IfStatement(condition, body, else_branch)
 
-    def parse_while_statement(self) -> Node:
-        self.consume(TokenType.PARENTHESIS_OPEN)
-        condition = self.parse_expression()
-        self.consume(TokenType.PARENTHESIS_CLOSE)
-        pass
+    def parse_while_statement(self) -> WhileStatement:
+        _ = self.consume(TokenType.KEYWORD, "while")
+        _ = self.consume(TokenType.PARENTHESIS_OPEN)
+        condition = self.parse_conditional()
+        _ = self.consume(TokenType.PARENTHESIS_CLOSE)
+        return WhileStatement(condition, None)
 
     def parse_print_statement(self) -> Node:
+        raise NotImplementedError
         pass
 
-    def parse_var_statement(self) -> Node:
-        pass
+    def parse_var_statement(self) -> VariableDeclaration:
+        # raise NotImplementedError
+        # var keyword consume
+        _ = self.consume(TokenType.KEYWORD, "var")
+        # consume symbol
+        name = self.consume(TokenType.SYMBOL)
+        # match =
+        _ = self.consume(TokenType.ASSIGNMENT)
+        # parse expression
+        value = self.parse_expression()  # Should return value
+        return VariableDeclaration(name.token, value)
 
     def parse_scope_statement(self) -> Node:
+        raise NotImplementedError
         pass
 
-    def parse_expression(self) -> Node:
+    def parse_conditional(self) -> Comparison:
         if not self.match(TokenType.NUMBER) and self.match(TokenType.SYMBOL):
             raise SyntaxError(
                 f"Expected Number or Symbol in expression, got {self.peek()}"
             )
-        left = None
+        left = Token()
         if self.match(TokenType.NUMBER):
             left = self.consume(TokenType.NUMBER)
         if self.match(TokenType.SYMBOL):
@@ -79,12 +100,22 @@ class Parser:
                 f"Expected Number or Symbol in expression, got {self.peek()}"
             )
 
-        right = None
+        right = Token()
         if self.match(TokenType.NUMBER):
             right = self.consume(TokenType.NUMBER)
         if self.match(TokenType.SYMBOL):
             right = self.consume(TokenType.SYMBOL)
         return Comparison(left, operator, right)
+
+    def parse_expression(self) -> Expression:
+        # raise NotImplementedError
+        # # Do RPN for this expression
+        # # Then calculate result
+        # left = self.consume(TokenType.NUMBER)
+        # operator = self.consume(TokenType.OPERATOR)
+        # right = self.consume(TokenType.NUMBER)
+        num = self.consume(TokenType.NUMBER)
+        return NumberLiteral(num.value)
 
     def match(self, type: TokenType, value: str | None = None) -> bool:
         if self.peek().type != type:

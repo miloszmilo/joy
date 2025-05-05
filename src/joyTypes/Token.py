@@ -45,7 +45,7 @@ class Token:
 
     @override
     def __str__(self) -> str:
-        return f'Token(token="{self.token}", type="{self.type}, value="{self.value}")'
+        return f'Token(token="{self.token}", type="{self.type}", value="{self.value}")'
 
     @override
     def __repr__(self) -> str:
