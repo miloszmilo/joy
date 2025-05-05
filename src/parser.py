@@ -4,6 +4,7 @@ from src.joyTypes.AST_Nodes import (
     IfStatement,
     Node,
     NumberLiteral,
+    PrintStatement,
     VariableDeclaration,
     WhileStatement,
 )
@@ -63,24 +64,21 @@ class Parser:
         return WhileStatement(condition, None)
 
     def parse_print_statement(self) -> Node:
-        raise NotImplementedError
-        pass
+        _ = self.consume(TokenType.KEYWORD, "print")
+        _ = self.consume(TokenType.PARENTHESIS_OPEN)
+        string = self.consume(TokenType.STRING)
+        _ = self.consume(TokenType.PARENTHESIS_CLOSE)
+        return PrintStatement(string.token)
 
     def parse_var_statement(self) -> VariableDeclaration:
-        # raise NotImplementedError
-        # var keyword consume
         _ = self.consume(TokenType.KEYWORD, "var")
-        # consume symbol
         name = self.consume(TokenType.SYMBOL)
-        # match =
         _ = self.consume(TokenType.ASSIGNMENT)
-        # parse expression
-        value = self.parse_expression()  # Should return value
+        value = self.parse_expression()
         return VariableDeclaration(name.token, value)
 
     def parse_scope_statement(self) -> Node:
         raise NotImplementedError
-        pass
 
     def parse_conditional(self) -> Comparison:
         if not self.match(TokenType.NUMBER) and self.match(TokenType.SYMBOL):

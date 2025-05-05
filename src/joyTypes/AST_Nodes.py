@@ -39,6 +39,16 @@ class NumberLiteral(Expression):
     def accept(self, visitor):
         return visitor.visit_number_literal(self)
 
+    @override
+    def __repr__(self) -> str:
+        return f"NumberLiteral(value={self.value})"
+
+    @override
+    def __eq__(self, value: object, /) -> bool:
+        if not isinstance(value, NumberLiteral):
+            return False
+        return self.value == value.value
+
 
 class VariableAccess(Expression):
     def __init__(self, name: str) -> None:
@@ -50,9 +60,9 @@ class VariableAccess(Expression):
 
 
 class VariableDeclaration(Expression):
-    def __init__(self, name: str, value: float) -> None:
+    def __init__(self, name: str, value: Expression) -> None:
         self.name: str = name
-        self.value: float = value
+        self.value: Expression = value
 
     @override
     def accept(self, visitor):
@@ -63,6 +73,10 @@ class VariableDeclaration(Expression):
         if not isinstance(value, VariableDeclaration):
             return False
         return self.name == value.name and self.value == value.value
+
+    @override
+    def __repr__(self) -> str:
+        return f"VariableDeclaration(name={self.name}, value={self.value})"
 
 
 class Comparison(Expression):
@@ -97,14 +111,14 @@ class Comparison(Expression):
 # Statements
 class IfStatement(Statement):
     condition: Comparison
-    body: Expression | None
-    elseBody: Expression | None
+    body: Node | None
+    elseBody: Node | None
 
     def __init__(
         self,
         condition: Comparison,
-        body: Expression | None = None,
-        elseBody: Expression | None = None,
+        body: Node | None = None,
+        elseBody: Node | None = None,
     ):
         self.condition = condition
         self.body = body
@@ -158,3 +172,26 @@ class WhileStatement(Statement):
     @override
     def __repr__(self) -> str:
         return f"WhileStatement(condition={self.condition}, body={self.body})"
+
+class PrintStatement(Statement):
+    text: str
+    def __init__(self, text: str = "") -> None:
+        self.text = text
+
+    @override
+    def accept(self, visitor):
+        return super().accept(visitor)
+
+    @override
+    def __eq__(self, value: object, /) -> bool:
+        if not isinstance(value, PrintStatement):
+            return False
+        return self.text == value.text
+
+    @override
+    def __str__(self) -> str:
+        return self.text
+
+    @override
+    def __repr__(self) -> str:
+        return f'PrintStatement(text={self.text})'

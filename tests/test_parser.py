@@ -1,10 +1,9 @@
 import pytest
 from src.joyTypes.AST_Nodes import (
     Comparison,
-    EmptyExpression,
-    Expression,
     IfStatement,
-    Node,
+    NumberLiteral,
+    PrintStatement,
     VariableDeclaration,
     WhileStatement,
 )
@@ -93,13 +92,13 @@ def test_parse_var():
             Token("var", TokenType.KEYWORD),
             Token("x", TokenType.SYMBOL),
             Token("=", TokenType.ASSIGNMENT),
-            Token("4", TokenType.NUMBER),
+            Token("4", TokenType.NUMBER, 4),
             Token("EOF", TokenType.EOF),
         ]
     )
     result = parser.parse_statement()
     assert isinstance(result, VariableDeclaration)
-    expected_result = VariableDeclaration("x", 4)
+    expected_result = VariableDeclaration("x", NumberLiteral(4))
     assert result == expected_result
 
 
@@ -152,4 +151,19 @@ def test_parse_while_body():
         ),
         None,
     )
+    assert result == expected_result
+
+def test_parse_print():
+    parser: Parser = Parser(
+        tokens=[
+            Token("print", TokenType.KEYWORD),
+            Token("(", TokenType.PARENTHESIS_OPEN),
+            Token("Hello, World!", TokenType.STRING),
+            Token(")", TokenType.PARENTHESIS_CLOSE),
+            Token("EOF", TokenType.EOF),
+        ]
+    )
+    result = parser.parse_statement()
+    assert isinstance(result, PrintStatement)
+    expected_result = PrintStatement("Hello, World!")
     assert result == expected_result
