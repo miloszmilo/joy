@@ -4,23 +4,29 @@ from dataclasses import dataclass
 from typing import Callable
 
 from src.exceptions.ExpressionError import ExpressionError
+from src.joyTypes.Operations import (
+    AddOperation,
+    DivideOperation,
+    MultiplyOperation,
+    SubtractOperation,
+)
 from src.joyTypes.Token import Token, TokenType
 
 
 class ExpressionEvaluator:
     operations: dict[str, Callable[[float, float], float]] = {
-        "+": lambda x, y: x + y,
-        "-": lambda x, y: x - y,
-        "*": lambda x, y: x * y,
-        "/": lambda x, y: x / y,
+        "+": AddOperation(),
+        "-": SubtractOperation(),
+        "*": MultiplyOperation(),
+        "/": DivideOperation(),
     }
 
     def convert_to_rpn(self, expression: list[Token]):
         numbers: deque[float] = deque()
         operators: deque[str] = deque()
         output: deque[float] = deque()
-        self.state = state[expression[0]]
         for i in expression:
+            self.state = StateFactory()
             self.state.handle()
             if i.type == TokenType.NUMBER:
                 numbers.append(float(i.token))
@@ -45,7 +51,7 @@ class State(ABC):
 
 
 class StateFactory:
-    def state(self, token: Token) -> State:
+    def __init__(self, token: Token) -> State:
         match token.type:
             case TokenType.NUMBER:
                 return NumberState()
@@ -57,3 +63,8 @@ class StateFactory:
                 return CloseParenthesisState()
             case _:
                 raise ExpressionError
+
+
+class NumberState:
+    def handle(self, token):
+        numbers.append(float(i.token))
