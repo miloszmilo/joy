@@ -15,7 +15,7 @@ def test_rpn_notation():
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     result = Evaluator(tokens)
-    rpn = result._create_rpn_from_tokens(tokens)
+    rpn = result._create_rpn_from_tokens()
 
     expected_result = deque(
         [
@@ -37,7 +37,7 @@ def test_simple_add_mul_subtract():
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     result = Evaluator(tokens)
-    rpn = result._create_rpn_from_tokens(tokens)
+    rpn = result._create_rpn_from_tokens()
     result = result._solve_rpn(rpn)
 
     expected_result = 6
@@ -50,7 +50,7 @@ def test_simple_parenthesis_end():
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     result = Evaluator(tokens)
-    rpn = result._create_rpn_from_tokens(tokens)
+    rpn = result._create_rpn_from_tokens()
     result = result._solve_rpn(rpn)
 
     expected_result = 3
@@ -65,7 +65,7 @@ def test_simple_parenthesis_start():
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     result = Evaluator(tokens)
-    rpn = result._create_rpn_from_tokens(tokens)
+    rpn = result._create_rpn_from_tokens()
     result = result._solve_rpn(rpn)
 
     expected_result = 9
@@ -80,7 +80,7 @@ def test_multiple_parenthesis():
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     result = Evaluator(tokens)
-    rpn = result._create_rpn_from_tokens(tokens)
+    rpn = result._create_rpn_from_tokens()
     result = result._solve_rpn(rpn)
 
     expected_result = -3
@@ -97,7 +97,7 @@ def test_invalid_expression():
         tokenizer = Tokenizer()
         tokens = tokenizer.tokenize(expr)
         result = Evaluator(tokens)
-        rpn = result._create_rpn_from_tokens(tokens)
+        rpn = result._create_rpn_from_tokens()
         result = result._solve_rpn(rpn)
 
 
@@ -106,7 +106,7 @@ def test_negative_numbers():
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     result = Evaluator(tokens)
-    rpn = result._create_rpn_from_tokens(tokens)
+    rpn = result._create_rpn_from_tokens()
 
     expected_rpn = deque(
         [
@@ -136,7 +136,7 @@ def test_negative_numbers_complex():
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     result = Evaluator(tokens)
-    rpn = result._create_rpn_from_tokens(tokens)
+    rpn = result._create_rpn_from_tokens()
 
     result = result._solve_rpn(rpn)
 
@@ -165,7 +165,7 @@ def test_rpn_notation_tokens():
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     result = Evaluator(tokens)
-    rpn = result._create_rpn_from_tokens(tokens)
+    rpn = result._create_rpn_from_tokens()
 
     expected_result = deque(
         [

@@ -10,7 +10,6 @@ from src.joyTypes.Symbol import (
     unary_operators,
 )
 from src.joyTypes.Token import Token, TokenType
-from src.tokenizer import Tokenizer
 
 MAX_PRECEDENCE = 100
 
@@ -19,6 +18,11 @@ class Evaluator:
     operator_stack: list[Token]
     variables: dict[str, float]
     tokens: list[Token]
+    i: int
+    current_token: Token
+    _holding_stack: deque[Symbol]
+    _output_stack: deque[Symbol]
+    _previous_symbol: Symbol
 
     operations: dict[str, Callable[[float, float], float]] = {
         "!=": lambda x, y: int(x != y),
@@ -45,117 +49,154 @@ class Evaluator:
         variables: dict[str, float] | None = None,
     ):
         self.tokens = tokens
+        self.i = 0
+        self.current_token = self.tokens[self.i]
         self.operator_stack = operator_stack if operator_stack else []
         self.variables = variables if variables else {}
+        self._holding_stack = deque()
+        self._output_stack = deque()
+        self._previous_symbol = Symbol("0", SymbolType.NUMBER, 0)
 
-    def _create_rpn_from_tokens(self, tokens: list[Token]) -> deque[Symbol]:
-        holding_stack: deque[Symbol] = deque()
-        output_stack: deque[Symbol] = deque()
-        previous_symbol: Symbol = Symbol("0", SymbolType.NUMBER, 0)
+    def _peek(self) -> Token:
+        return self.tokens[self.i]
 
-        for i, c in enumerate(tokens):
-            if c.type == TokenType.EOF:
-                break
-            if c.type == TokenType.NUMBER:
-                _sym = Symbol(str(c.value), SymbolType.NUMBER, 0)
-                output_stack.append(_sym)
-                previous_symbol = _sym
+    def _advance(self):
+        if self.i + 1 >= len(self.tokens):
+            return
+        self.i += 1
+        self.current_token = self.tokens[self.i]
+
+    def _match(self, type: TokenType, token: str | None = "") -> bool:
+        cur = self._peek()
+        if token:
+            return cur.type == type and cur.token == token
+        return cur.type == type
+
+    def _create_rpn_from_tokens(self) -> deque[Symbol]:
+        while self.current_token.type != TokenType.EOF:
+            if self.current_token.type == TokenType.NUMBER:
+                _sym = Symbol(str(self.current_token.value), SymbolType.NUMBER, 0)
+                self._output_stack.append(_sym)
+                self._previous_symbol = _sym
+                self._advance()
                 continue
 
-            if c.type == TokenType.PARENTHESIS_OPEN:
-                _sym = Symbol(c.token, SymbolType.PARENTHESIS_OPEN, 0)
-                holding_stack.appendleft(_sym)
-                previous_symbol = _sym
+            if self.current_token.type == TokenType.PARENTHESIS_OPEN:
+                _sym = Symbol(self.current_token.token, SymbolType.PARENTHESIS_OPEN, 0)
+                self._holding_stack.appendleft(_sym)
+                self._previous_symbol = _sym
+                self._advance()
                 continue
 
-            if c.type == TokenType.PARENTHESIS_CLOSE:
+            if self.current_token.type == TokenType.PARENTHESIS_CLOSE:
                 while (
-                    holding_stack
-                    and holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
+                    self._holding_stack
+                    and self._holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
                 ):
-                    output_stack.append(holding_stack.popleft())
-                if not holding_stack:
+                    self._output_stack.append(self._holding_stack.popleft())
+                if not self._holding_stack:
                     raise ExpressionError("Parenthesis missmatched")
                 if (
-                    holding_stack
-                    and holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
+                    self._holding_stack
+                    and self._holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
                 ):
-                    _ = holding_stack.popleft()
-                previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
+                    _ = self._holding_stack.popleft()
+                self._previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
+                self._advance()
                 continue
 
-            if c.type == TokenType.SYMBOL:
-                if c.token not in self.variables:
-                    self.variables[c.token] = 0.0
-                _sym = Symbol(str(c.token), SymbolType.SYMBOL, 0)
-                output_stack.append(_sym)
-                previous_symbol = _sym
+            if self.current_token.type == TokenType.SYMBOL:
+                if self.current_token.token not in self.variables:
+                    self.variables[self.current_token.token] = 0.0
+                _sym = Symbol(str(self.current_token.token), SymbolType.SYMBOL, 0)
+                self._output_stack.append(_sym)
+                self._previous_symbol = _sym
+                self._advance()
                 continue
 
-            if c.type == TokenType.KEYWORD:
-                _sym = Symbol(str(c.token), SymbolType.KEYWORD, 0)
-                output_stack.append(_sym)
-                previous_symbol = _sym
+            if self.current_token.type == TokenType.KEYWORD:
+                _sym = Symbol(str(self.current_token.token), SymbolType.KEYWORD, 0)
+                self._output_stack.append(_sym)
+                self._previous_symbol = _sym
+                self._advance()
                 continue
 
             if (
-                c.type == TokenType.OPERATOR
-                and c.token == "="
-                and previous_symbol.type == SymbolType.SYMBOL
+                self.current_token.type == TokenType.OPERATOR
+                and self.current_token.token == "="
+                and self._previous_symbol.type == SymbolType.SYMBOL
             ):
-                _sym = Symbol(str(c.token), SymbolType.ASSIGNMENT, 0)
-                holding_stack.append(_sym)
-                previous_symbol = _sym
+                _sym = Symbol(str(self.current_token.token), SymbolType.ASSIGNMENT, 0)
+                self._holding_stack.append(_sym)
+                self._previous_symbol = _sym
+                self._advance()
                 continue
 
-            if c.type == TokenType.OPERATOR and c.token == "=":
+            if (
+                self.current_token.type == TokenType.OPERATOR
+                and self.current_token.token == "="
+            ):
                 raise ExpressionError(
-                    f"Got equals without symbol name {previous_symbol.__repr__()}."
+                    f"Got equals without symbol name {self._previous_symbol.__repr__()}."
                 )
 
             if (
-                c.token not in binary_operators.keys()
-                and c.token not in keywords.keys()
-                and c.type == TokenType.OPERATOR
+                self.current_token.token not in binary_operators.keys()
+                and self.current_token.token not in keywords.keys()
+                and self.current_token.type == TokenType.OPERATOR
             ):
-                raise ExpressionError(f"Symbol {c} is not a valid symbol.")
+                raise ExpressionError(
+                    f"Symbol {self.current_token} is not a valid symbol."
+                )
 
-            new_operator = Symbol(c.token, SymbolType.OPERATOR, 2)
-            if (c.token == "-" or c.token == "+") and (
-                previous_symbol.type
+            new_operator = Symbol(self.current_token.token, SymbolType.OPERATOR, 2)
+            if (
+                self.current_token.token == "-" or self.current_token.token == "+"
+            ) and (
+                self._previous_symbol.type
                 not in [
                     SymbolType.NUMBER,
                     SymbolType.PARENTHESIS_CLOSE,
                     SymbolType.SYMBOL,
                 ]
-                or i == 0
+                or self.i == 0
             ):
                 new_operator.precedence = MAX_PRECEDENCE
                 new_operator.argument_count = 1
 
             while (
-                holding_stack and holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
+                self._holding_stack
+                and self._holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
             ):
-                if holding_stack[0].type != SymbolType.OPERATOR:
+                if self._holding_stack[0].type != SymbolType.OPERATOR:
                     break
 
-                if holding_stack[0].precedence >= new_operator.precedence:
-                    _sym = holding_stack.popleft()
-                    output_stack.append(_sym)
+                if self._holding_stack[0].precedence >= new_operator.precedence:
+                    _sym = self._holding_stack.popleft()
+                    self._output_stack.append(_sym)
                     continue
                 break
             _sym = Symbol(
-                c.token,
+                self.current_token.token,
                 SymbolType.OPERATOR,
                 new_operator.argument_count,
                 new_operator.precedence,
             )
-            holding_stack.appendleft(_sym)
-            previous_symbol = _sym
-        while holding_stack:
-            output_stack.append(holding_stack.popleft())
+            self._holding_stack.appendleft(_sym)
+            self._previous_symbol = _sym
+            self._advance()
+        self._handle_eof()
 
-        return output_stack
+        return self._output_stack
+
+    def _handle_eof(self):
+        if len(self.tokens) > self.i + 1:
+            raise ExpressionError(
+                f"Found more tokens, but encountered EOF {self.tokens}"
+            )
+        while self._holding_stack:
+            self._output_stack.append(self._holding_stack.popleft())
+        return
 
     def _solve_rpn(self, stack: deque[Symbol]) -> float:
         output: deque[float] = deque()
@@ -234,7 +275,7 @@ class Evaluator:
         return output.popleft()
 
     def solve(self) -> float:
-        rpn = self._create_rpn_from_tokens(self.tokens)
+        rpn = self._create_rpn_from_tokens()
         result = self._solve_rpn(rpn)
         return result
 
