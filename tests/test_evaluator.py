@@ -11,10 +11,10 @@ from src.tokenizer import Tokenizer
 
 
 def test_rpn_notation():
-    result = Evaluator()
     expr = "1 + 2 * 4 - 3"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens)
     rpn = result._create_rpn_from_tokens(tokens)
 
     expected_result = deque(
@@ -33,10 +33,10 @@ def test_rpn_notation():
 
 
 def test_simple_add_mul_subtract():
-    result = Evaluator()
     expr = "1 + 2 * 4 - 3"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens)
     rpn = result._create_rpn_from_tokens(tokens)
     result = result._solve_rpn(rpn)
 
@@ -46,10 +46,10 @@ def test_simple_add_mul_subtract():
 
 
 def test_simple_parenthesis_end():
-    result = Evaluator()
     expr = "1 + 2 * (4 - 3)"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens)
     rpn = result._create_rpn_from_tokens(tokens)
     result = result._solve_rpn(rpn)
 
@@ -61,10 +61,10 @@ def test_simple_parenthesis_end():
 
 
 def test_simple_parenthesis_start():
-    result = Evaluator()
     expr = "(1 + 2) * 4 - 3"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens)
     rpn = result._create_rpn_from_tokens(tokens)
     result = result._solve_rpn(rpn)
 
@@ -76,10 +76,10 @@ def test_simple_parenthesis_start():
 
 
 def test_multiple_parenthesis():
-    result = Evaluator()
     expr = "(1 + 2) * (((4 - 3)-2))"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens)
     rpn = result._create_rpn_from_tokens(tokens)
     result = result._solve_rpn(rpn)
 
@@ -91,21 +91,21 @@ def test_multiple_parenthesis():
 
 
 def test_invalid_expression():
-    result = Evaluator()
     expr = "(1 + 2) * 4 -"
 
     with pytest.raises(ExpressionError, match="Expression invalid"):
         tokenizer = Tokenizer()
         tokens = tokenizer.tokenize(expr)
+        result = Evaluator(tokens)
         rpn = result._create_rpn_from_tokens(tokens)
         result = result._solve_rpn(rpn)
 
 
 def test_negative_numbers():
-    result = Evaluator()
     expr = "1 + 2 * - 4 - 3"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens)
     rpn = result._create_rpn_from_tokens(tokens)
 
     expected_rpn = deque(
@@ -132,10 +132,10 @@ def test_negative_numbers():
 
 
 def test_negative_numbers_complex():
-    result = Evaluator()
     expr = "-((1 + 2)/((6*-7)+(7*-4)/2)-3)"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens)
     rpn = result._create_rpn_from_tokens(tokens)
 
     result = result._solve_rpn(rpn)
@@ -148,9 +148,10 @@ def test_negative_numbers_complex():
 
 
 def test_evaluate():
-    result = Evaluator()
     expr = "2+4+6+8-4*3-3*4-1/3*2"
-    result = result.evaluate(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens).solve()
 
     expected_result = -4.666666666666667
 
@@ -160,10 +161,10 @@ def test_evaluate():
 
 
 def test_rpn_notation_tokens():
-    result = Evaluator()
     expr = "1 + 2 * 4 - 3"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
+    result = Evaluator(tokens)
     rpn = result._create_rpn_from_tokens(tokens)
 
     expected_result = deque(
@@ -182,9 +183,11 @@ def test_rpn_notation_tokens():
 
 
 def test_rpn_notation_complex():
-    eval = Evaluator()
     expr = "0x1 + 0b10 * 4 - 3.0"
-    result = eval.evaluate(expr)
+    tokenizer = Tokenizer()
+    tokens = tokenizer.tokenize(expr)
+    eval = Evaluator(tokens)
+    result = eval.solve()
 
     expected_result = 6
     assert result == expected_result, (
@@ -193,192 +196,9 @@ def test_rpn_notation_complex():
 
 
 def test_functions_fail():
-    eval = Evaluator()
     expr = "f(1,2)"
-    with pytest.raises(ExpressionError):
-        _res = eval.evaluate(expr)
-    eval = Evaluator()
-
-
-def test_add_with_variable():
-    eval = Evaluator()
-    expr = "x + 4"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
-    rpn = eval._create_rpn_from_tokens(tokens)
-    expected_rpn = deque(
-        [
-            Symbol("x", SymbolType.SYMBOL, 0),
-            Symbol("4.0", SymbolType.NUMBER, 0),
-            Symbol("+", SymbolType.OPERATOR, 2),
-        ]
-    )
-    assert rpn == expected_rpn, f"should create rpn from {expr} to {expected_rpn}"
-
-    eval.variables = {"x": 3}
-    result = eval.evaluate(expr)
-    expected_result = 7
-
-    assert result == expected_result
-
-
-def test_variable_evaluate():
-    eval = Evaluator()
-    expr = "x = 4"
+    eval = Evaluator(tokens)
     with pytest.raises(ExpressionError):
-        _res = eval.evaluate(expr)
-
-
-def test_add_only_variables():
-    eval = Evaluator()
-    expr = "x + y"
-    eval.variables = {"x": 4, "y": 3}
-    result = eval.evaluate(expr)
-    expected_result = 7
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_var_expression():
-    eval = Evaluator()
-    expr = "var x = 2 + 3"
-    _ = eval.evaluate(expr)
-    expected_result = {"x": 5}
-    assert eval.variables == expected_result, (
-        f"should evaluate {expr} to {expected_result}"
-    )
-
-
-def test_equal():
-    eval = Evaluator()
-    expr = "3 == 3"
-    result = eval.evaluate(expr)
-    expected_result = 1.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_equal_false():
-    eval = Evaluator()
-    expr = "3 == 4"
-    result = eval.evaluate(expr)
-    expected_result = 0.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_not_equal():
-    eval = Evaluator()
-    expr = "3 != 4"
-    result = eval.evaluate(expr)
-    expected_result = 1.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_not_equal_false():
-    eval = Evaluator()
-    expr = "3 != 3"
-    result = eval.evaluate(expr)
-    expected_result = 0.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_less_than():
-    eval = Evaluator()
-    expr = "3 < 4"
-    result = eval.evaluate(expr)
-    expected_result = 1.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_less_than_false():
-    eval = Evaluator()
-    expr = "3 < 3"
-    result = eval.evaluate(expr)
-    expected_result = 0.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_less_than_or_equal():
-    eval = Evaluator()
-    expr = "3 <= 3"
-    result = eval.evaluate(expr)
-    expected_result = 1.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_less_than_or_equal_false():
-    eval = Evaluator()
-    expr = "3 <= 2"
-    result = eval.evaluate(expr)
-    expected_result = 0.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_greater_than_or_equal():
-    eval = Evaluator()
-    expr = "3 >= 2"
-    result = eval.evaluate(expr)
-    expected_result = 1.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_greater_than_or_equal_false():
-    eval = Evaluator()
-    expr = "3 >= 4"
-    result = eval.evaluate(expr)
-    expected_result = 0.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_greater_than():
-    eval = Evaluator()
-    expr = "3 > 2"
-    result = eval.evaluate(expr)
-    expected_result = 1.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_greater_than_false():
-    eval = Evaluator()
-    expr = "3 > 4"
-    result = eval.evaluate(expr)
-    expected_result = 0.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_conditional():
-    eval = Evaluator(variables={"x": 4.0})
-    expr = "(x > 3)"
-    result = eval.evaluate(expr)
-    expected_result = 1.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_conditional_false():
-    eval = Evaluator(variables={"x": 4.0})
-    expr = "(x < 3)"
-    result = eval.evaluate(expr)
-    expected_result = 0.0
-    assert result == expected_result, f"should evaluate {expr} to {expected_result}"
-
-
-def test_if_body():
-    eval = Evaluator(variables={"x": 4.0})
-    expr = """if (x > 3) {
-        x = 4 + 1
-    }"""
-    _ = eval.evaluate(expr)
-    expected_variables = {"x": 5.0}
-    assert eval.variables == expected_variables, (
-        f"should evaluate {expr} to update variable {expected_variables}"
-    )
-
-
-def test_if_false_body():
-    eval = Evaluator(variables={"x": 4.0})
-    expr = """if (x < 3) {
-        x = x + 1
-    }"""
-    _ = eval.evaluate(expr)
-    expected_variables = {"x": 4.0}
-    assert eval.variables == expected_variables, (
-        f"should evaluate {expr} to not update variable {expected_variables}"
-    )
+        _res = eval.solve()

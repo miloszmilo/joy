@@ -18,6 +18,7 @@ MAX_PRECEDENCE = 100
 class Evaluator:
     operator_stack: list[Token]
     variables: dict[str, float]
+    tokens: list[Token]
 
     operations: dict[str, Callable[[float, float], float]] = {
         "!=": lambda x, y: int(x != y),
@@ -39,9 +40,11 @@ class Evaluator:
 
     def __init__(
         self,
+        tokens: list[Token],
         operator_stack: list[Token] | None = None,
         variables: dict[str, float] | None = None,
     ):
+        self.tokens = tokens
         self.operator_stack = operator_stack if operator_stack else []
         self.variables = variables if variables else {}
 
@@ -230,10 +233,8 @@ class Evaluator:
             return self.variables[_variable_name]
         return output.popleft()
 
-    def evaluate(self, code_line: str = "") -> float:
-        tokenizer = Tokenizer()
-        tokens = tokenizer.tokenize(code_line)
-        rpn = self._create_rpn_from_tokens(tokens)
+    def solve(self) -> float:
+        rpn = self._create_rpn_from_tokens(self.tokens)
         result = self._solve_rpn(rpn)
         return result
 
