@@ -46,6 +46,7 @@ class Tokenizer:
     _string: str
     char: str
     output: list[Token]
+    other_states: dict[str, TokenizerStateBase]
 
     def __init__(self):
         self.current_state = NewTokenState()
@@ -73,6 +74,15 @@ class Tokenizer:
             ">",
             "~",
         ]
+        self.other_states = {
+            "(": OpenParenthesisState(),
+            ")": CloseParenthesisState(),
+            '"': StringState(),
+            "{": OpenScopeState(),
+            "}": CloseScopeState(),
+            ",": CommaState(),
+            ";": EndOfStatementState(),
+        }
         self.operators = ["+", "-", "/", "*", "="]
         self.comparison_operators = [">", ">=", "<", "<=", "==", "!="]
         self.parenthesis_balance = 0
@@ -146,28 +156,34 @@ class NewTokenState(TokenizerStateBase):
             tokenizer.next_state = OperatorState()
             return
 
-        if tokenizer.char == "(":
-            tokenizer.next_state = OpenParenthesisState()
+        if tokenizer.char in tokenizer.other_states:
+            tokenizer.next_state = tokenizer.other_states[tokenizer.char]
+            if isinstance(tokenizer.next_state, StringState):
+                tokenizer.next_char()
             return
-        if tokenizer.char == ")":
-            tokenizer.next_state = CloseParenthesisState()
-            return
-        if tokenizer.char == '"':
-            tokenizer.next_state = StringState()
-            tokenizer.next_char()
-            return
-        if tokenizer.char == "{":
-            tokenizer.next_state = OpenScopeState()
-            return
-        if tokenizer.char == "}":
-            tokenizer.next_state = CloseScopeState()
-            return
-        if tokenizer.char == ",":
-            tokenizer.next_state = CommaState()
-            return
-        if tokenizer.char == ";":
-            tokenizer.next_state = EndOfStatementState()
-            return
+        #
+        # if tokenizer.char == "(":
+        #     tokenizer.next_state = OpenParenthesisState()
+        #     return
+        # if tokenizer.char == ")":
+        #     tokenizer.next_state = CloseParenthesisState()
+        #     return
+        # if tokenizer.char == '"':
+        #     tokenizer.next_state = StringState()
+        #     tokenizer.next_char()
+        #     return
+        # if tokenizer.char == "{":
+        #     tokenizer.next_state = OpenScopeState()
+        #     return
+        # if tokenizer.char == "}":
+        #     tokenizer.next_state = CloseScopeState()
+        #     return
+        # if tokenizer.char == ",":
+        #     tokenizer.next_state = CommaState()
+        #     return
+        # if tokenizer.char == ";":
+        #     tokenizer.next_state = EndOfStatementState()
+        #     return
         tokenizer.token_string += tokenizer.char
         tokenizer.next_char()
         tokenizer.next_state = SymbolNameState()

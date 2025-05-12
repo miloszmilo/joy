@@ -1,3 +1,5 @@
+from __future__ import annotations
+from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable, override
 
@@ -23,6 +25,7 @@ class Evaluator:
     _holding_stack: deque[Symbol]
     _output_stack: deque[Symbol]
     _previous_symbol: Symbol
+    strategies: dict[TokenType, Strategy]
 
     operations: dict[str, Callable[[float, float], float]] = {
         "!=": lambda x, y: int(x != y),
@@ -56,6 +59,7 @@ class Evaluator:
         self._holding_stack = deque()
         self._output_stack = deque()
         self._previous_symbol = Symbol("0", SymbolType.NUMBER, 0)
+        self.strategies = {}
 
     def _peek(self) -> Token:
         return self.tokens[self.i]
@@ -71,6 +75,15 @@ class Evaluator:
         if token:
             return cur.type == type and cur.token == token
         return cur.type == type
+
+    def evaluate_tokens(self):
+        self.strategies = {
+            TokenType.EOF: EOFStrategy(),
+            TokenType.NUMBER: NumberStrategy(),
+            TokenType.PARENTHESIS_OPEN: OpenParenthesisStrategy(),
+        }
+        for t in self.tokens:
+            self.strategies[t.type].execute()
 
     def _create_rpn_from_tokens(self) -> deque[Symbol]:
         while self.current_token.type != TokenType.EOF:
@@ -292,3 +305,30 @@ class Evaluator:
     @override
     def __repr__(self) -> str:
         return f"Evaluator({self.operator_stack})"
+
+
+class Strategy(ABC):
+    @abstractmethod
+    def execute(self, *args: deque[Token]):
+        pass
+
+
+class NumberStrategy(Strategy):
+    @override
+    def execute(self, evaluator: Evaluator):
+        _sym = Symbol(str(evaluator.current_token.value), SymbolType.NUMBER, 0)
+        evaluator._output_stack.append(_sym)
+        evaluator._previous_symbol = _sym
+        evaluator._advance()
+
+
+class EOFStrategy(Strategy):
+    @override
+    def execute(self, *args: deque[Token]):
+        return super().execute(*args)
+
+
+class OpenParenthesisStrategy(Strategy):
+    @override
+    def execute(self, *args: deque[Token]):
+        return super().execute(*args)

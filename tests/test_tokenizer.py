@@ -19,6 +19,7 @@ def test_tokenizer_simple():
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token("-", TokenType.OPERATOR),
         Token("30000", TokenType.NUMBER, 30000.0),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -38,6 +39,7 @@ def test_tokenizer_floats():
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token("-", TokenType.OPERATOR),
         Token("30.000", TokenType.NUMBER, 30.000),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -64,6 +66,7 @@ def test_tokenizer_start_with_dot():
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token("-", TokenType.OPERATOR),
         Token("30.000", TokenType.NUMBER, 30.000),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -91,6 +94,7 @@ def test_tokenizer_letters_before_float():
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token("-", TokenType.OPERATOR),
         Token("abc30.00.0", TokenType.SYMBOL),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -104,6 +108,7 @@ def test_tokenizer_symbol_space_float():
     expected_result = [
         Token("abc", TokenType.SYMBOL),
         Token("1.0", TokenType.NUMBER, 1.0),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -119,6 +124,7 @@ def test_tokenizer_hex_and_binary():
         Token("0xABC34", TokenType.NUMBER, float(int("ABC34", 16))),
         Token("23.176", TokenType.NUMBER, 23.176),
         Token("9", TokenType.NUMBER, 9),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -143,6 +149,7 @@ def test_tokenizer_scope_simple():
         Token("23.176", TokenType.NUMBER, 23.176),
         Token("9", TokenType.NUMBER, 9),
         Token("}", TokenType.SCOPE_CLOSE),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -176,6 +183,7 @@ def test_tokenizer_comma_simple():
         Token("23.176", TokenType.NUMBER, 23.176),
         Token("9", TokenType.NUMBER, 9),
         Token("}", TokenType.SCOPE_CLOSE),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -199,6 +207,7 @@ def test_tokenizer_scope_complex():
         Token("9", TokenType.NUMBER, 9),
         Token(",", TokenType.COMMA),
         Token("}", TokenType.SCOPE_CLOSE),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -219,6 +228,7 @@ def test_tokenizer_eos():
         Token("9", TokenType.NUMBER, 9),
         Token("}", TokenType.SCOPE_CLOSE),
         Token(";", TokenType.END_OF_STATEMENT),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -235,6 +245,7 @@ def test_tokenizer_print():
         Token("Hello, world!", TokenType.STRING),
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token(";", TokenType.END_OF_STATEMENT),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -247,6 +258,7 @@ def test_tokenizer_string():
 
     expected_result = [
         Token("Hello, world!", TokenType.STRING),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -264,9 +276,7 @@ def test_tokenizer_var():
     expr = "var"
     result = tokenizer.tokenize(expr)
 
-    expected_result = [
-        Token("var", TokenType.KEYWORD),
-    ]
+    expected_result = [Token("var", TokenType.KEYWORD), Token("EOF", TokenType.EOF)]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
 
@@ -281,6 +291,7 @@ def test_tokenizer_var_value():
         Token("x", TokenType.SYMBOL),
         Token("=", TokenType.OPERATOR),
         Token("4", TokenType.NUMBER, 4),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -300,6 +311,7 @@ def test_tokenizer_var_expression():
         Token("5", TokenType.NUMBER, 5),
         Token("+", TokenType.OPERATOR),
         Token("12", TokenType.NUMBER, 12),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -321,6 +333,7 @@ def test_tokenizer_var_expression_parenthesis():
         Token("+", TokenType.OPERATOR),
         Token("12", TokenType.NUMBER, 12),
         Token(")", TokenType.PARENTHESIS_CLOSE),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -333,8 +346,9 @@ def test_equals():
 
     expected_result = [
         Token("4", TokenType.NUMBER, 4),
-        Token("==", TokenType.OPERATOR),
+        Token("==", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -347,8 +361,9 @@ def test_not_equals():
 
     expected_result = [
         Token("4", TokenType.NUMBER, 4),
-        Token("!=", TokenType.OPERATOR),
+        Token("!=", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -361,8 +376,9 @@ def test_less_than():
 
     expected_result = [
         Token("4", TokenType.NUMBER, 4),
-        Token("<", TokenType.OPERATOR),
+        Token("<", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -375,8 +391,9 @@ def test_less_than_or_equal():
 
     expected_result = [
         Token("4", TokenType.NUMBER, 4),
-        Token("<=", TokenType.OPERATOR),
+        Token("<=", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -389,8 +406,9 @@ def test_greater_than():
 
     expected_result = [
         Token("4", TokenType.NUMBER, 4),
-        Token(">", TokenType.OPERATOR),
+        Token(">", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -403,8 +421,9 @@ def test_greater_than_or_equal():
 
     expected_result = [
         Token("4", TokenType.NUMBER, 4),
-        Token(">=", TokenType.OPERATOR),
+        Token(">=", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -419,11 +438,12 @@ def test_if():
         Token("if", TokenType.KEYWORD),
         Token("(", TokenType.PARENTHESIS_OPEN),
         Token("4", TokenType.NUMBER, 4),
-        Token(">", TokenType.OPERATOR),
+        Token(">", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token("{", TokenType.SCOPE_OPEN),
         Token("}", TokenType.SCOPE_CLOSE),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -440,7 +460,7 @@ def test_if_with_body():
         Token("if", TokenType.KEYWORD),
         Token("(", TokenType.PARENTHESIS_OPEN),
         Token("4", TokenType.NUMBER, 4),
-        Token(">", TokenType.OPERATOR),
+        Token(">", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token("{", TokenType.SCOPE_OPEN),
@@ -449,6 +469,7 @@ def test_if_with_body():
         Token("=", TokenType.OPERATOR),
         Token("4", TokenType.NUMBER, 4),
         Token("}", TokenType.SCOPE_CLOSE),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -467,7 +488,7 @@ def test_if_with_body_else():
         Token("if", TokenType.KEYWORD),
         Token("(", TokenType.PARENTHESIS_OPEN),
         Token("4", TokenType.NUMBER, 4),
-        Token(">", TokenType.OPERATOR),
+        Token(">", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token("{", TokenType.SCOPE_OPEN),
@@ -483,6 +504,7 @@ def test_if_with_body_else():
         Token("=", TokenType.OPERATOR),
         Token("5", TokenType.NUMBER, 5),
         Token("}", TokenType.SCOPE_CLOSE),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
@@ -499,7 +521,7 @@ def test_while():
         Token("while", TokenType.KEYWORD),
         Token("(", TokenType.PARENTHESIS_OPEN),
         Token("x", TokenType.SYMBOL),
-        Token(">", TokenType.OPERATOR),
+        Token(">", TokenType.COMPARISON_OPERATOR),
         Token("5", TokenType.NUMBER, 5),
         Token(")", TokenType.PARENTHESIS_CLOSE),
         Token("{", TokenType.SCOPE_OPEN),
@@ -509,6 +531,7 @@ def test_while():
         Token("+", TokenType.OPERATOR),
         Token("1", TokenType.NUMBER, 1),
         Token("}", TokenType.SCOPE_CLOSE),
+        Token("EOF", TokenType.EOF),
     ]
 
     assert result == expected_result, f"should tokenize {expr} got {result}"
