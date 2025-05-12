@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable, override
 
+from src.context import Context
 from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.Symbol import (
     Symbol,
@@ -26,6 +28,7 @@ class Evaluator:
     _output_stack: deque[Symbol]
     _previous_symbol: Symbol
     strategies: dict[TokenType, Strategy]
+    context: Context
 
     operations: dict[str, Callable[[float, float], float]] = {
         "!=": lambda x, y: int(x != y),
@@ -51,24 +54,26 @@ class Evaluator:
         operator_stack: list[Token] | None = None,
         variables: dict[str, float] | None = None,
     ):
-        self.tokens = tokens
-        self.i = 0
-        self.current_token = self.tokens[self.i]
-        self.operator_stack = operator_stack if operator_stack else []
-        self.variables = variables if variables else {}
-        self._holding_stack = deque()
-        self._output_stack = deque()
-        self._previous_symbol = Symbol("0", SymbolType.NUMBER, 0)
         self.strategies = {}
+        self.context = Context(
+            operator_stack if operator_stack else [],
+            variables if variables else {},
+            tokens,
+            0,
+            tokens[0],
+            deque(),
+            deque(),
+            Symbol("0", SymbolType.NUMBER, 0),
+        )
 
     def _peek(self) -> Token:
-        return self.tokens[self.i]
+        return self.context.tokens[self.i]
 
     def _advance(self):
-        if self.i + 1 >= len(self.tokens):
+        if self.context.i + 1 >= len(self.context.tokens):
             return
-        self.i += 1
-        self.current_token = self.tokens[self.i]
+        self.context.i += 1
+        self.context.current_token = self.context.tokens[self.context.i]
 
     def _match(self, type: TokenType, token: str | None = "") -> bool:
         cur = self._peek()
@@ -82,133 +87,152 @@ class Evaluator:
             TokenType.NUMBER: NumberStrategy(),
             TokenType.PARENTHESIS_OPEN: OpenParenthesisStrategy(),
         }
-        for t in self.tokens:
-            self.strategies[t.type].execute()
+        for t in self.context.tokens:
+            self.strategies[t.type].execute(self.context, self.tokens)
 
     def _create_rpn_from_tokens(self) -> deque[Symbol]:
-        while self.current_token.type != TokenType.EOF:
-            if self.current_token.type == TokenType.NUMBER:
-                _sym = Symbol(str(self.current_token.value), SymbolType.NUMBER, 0)
-                self._output_stack.append(_sym)
-                self._previous_symbol = _sym
+        while self.context.current_token.type != TokenType.EOF:
+            if self.context.current_token.type == TokenType.NUMBER:
+                _sym = Symbol(
+                    str(self.context.current_token.value), SymbolType.NUMBER, 0
+                )
+                self.context._output_stack.append(_sym)
+                self.context._previous_symbol = _sym
                 self._advance()
                 continue
 
-            if self.current_token.type == TokenType.PARENTHESIS_OPEN:
-                _sym = Symbol(self.current_token.token, SymbolType.PARENTHESIS_OPEN, 0)
-                self._holding_stack.appendleft(_sym)
-                self._previous_symbol = _sym
+            if self.context.current_token.type == TokenType.PARENTHESIS_OPEN:
+                _sym = Symbol(
+                    self.context.current_token.token, SymbolType.PARENTHESIS_OPEN, 0
+                )
+                self.context._holding_stack.appendleft(_sym)
+                self.context._previous_symbol = _sym
                 self._advance()
                 continue
 
-            if self.current_token.type == TokenType.PARENTHESIS_CLOSE:
+            if self.context.current_token.type == TokenType.PARENTHESIS_CLOSE:
                 while (
-                    self._holding_stack
-                    and self._holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
+                    self.context._holding_stack
+                    and self.context._holding_stack[0].type
+                    is not SymbolType.PARENTHESIS_OPEN
                 ):
-                    self._output_stack.append(self._holding_stack.popleft())
-                if not self._holding_stack:
+                    self.context._output_stack.append(
+                        self.context._holding_stack.popleft()
+                    )
+                if not self.context._holding_stack:
                     raise ExpressionError("Parenthesis missmatched")
                 if (
-                    self._holding_stack
-                    and self._holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
+                    self.context._holding_stack
+                    and self.context._holding_stack[0].type
+                    is SymbolType.PARENTHESIS_OPEN
                 ):
-                    _ = self._holding_stack.popleft()
-                self._previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
+                    _ = self.context._holding_stack.popleft()
+                self.context._previous_symbol = Symbol(
+                    ")", SymbolType.PARENTHESIS_CLOSE, 0
+                )
                 self._advance()
                 continue
 
-            if self.current_token.type == TokenType.SYMBOL:
-                if self.current_token.token not in self.variables:
-                    self.variables[self.current_token.token] = 0.0
-                _sym = Symbol(str(self.current_token.token), SymbolType.SYMBOL, 0)
-                self._output_stack.append(_sym)
-                self._previous_symbol = _sym
+            if self.context.current_token.type == TokenType.SYMBOL:
+                if self.context.current_token.token not in self.context.variables:
+                    self.context.variables[self.context.current_token.token] = 0.0
+                _sym = Symbol(
+                    str(self.context.current_token.token), SymbolType.SYMBOL, 0
+                )
+                self.context._output_stack.append(_sym)
+                self.context._previous_symbol = _sym
                 self._advance()
                 continue
 
-            if self.current_token.type == TokenType.KEYWORD:
-                _sym = Symbol(str(self.current_token.token), SymbolType.KEYWORD, 0)
-                self._output_stack.append(_sym)
-                self._previous_symbol = _sym
+            if self.context.current_token.type == TokenType.KEYWORD:
+                _sym = Symbol(
+                    str(self.context.current_token.token), SymbolType.KEYWORD, 0
+                )
+                self.context._output_stack.append(_sym)
+                self.context._previous_symbol = _sym
                 self._advance()
                 continue
 
             if (
-                self.current_token.type == TokenType.OPERATOR
-                and self.current_token.token == "="
-                and self._previous_symbol.type == SymbolType.SYMBOL
+                self.context.current_token.type == TokenType.OPERATOR
+                and self.context.current_token.token == "="
+                and self.context._previous_symbol.type == SymbolType.SYMBOL
             ):
-                _sym = Symbol(str(self.current_token.token), SymbolType.ASSIGNMENT, 0)
-                self._holding_stack.append(_sym)
-                self._previous_symbol = _sym
+                _sym = Symbol(
+                    str(self.context.current_token.token), SymbolType.ASSIGNMENT, 0
+                )
+                self.context._holding_stack.append(_sym)
+                self.context._previous_symbol = _sym
                 self._advance()
                 continue
 
             if (
-                self.current_token.type == TokenType.OPERATOR
-                and self.current_token.token == "="
+                self.context.current_token.type == TokenType.OPERATOR
+                and self.context.current_token.token == "="
             ):
                 raise ExpressionError(
-                    f"Got equals without symbol name {self._previous_symbol.__repr__()}."
+                    f"Got equals without symbol name {self.context._previous_symbol.__repr__()}."
                 )
 
             if (
-                self.current_token.token not in binary_operators.keys()
-                and self.current_token.token not in keywords.keys()
-                and self.current_token.type == TokenType.OPERATOR
+                self.context.current_token.token not in binary_operators.keys()
+                and self.context.current_token.token not in keywords.keys()
+                and self.context.current_token.type == TokenType.OPERATOR
             ):
                 raise ExpressionError(
-                    f"Symbol {self.current_token} is not a valid symbol."
+                    f"Symbol {self.context.current_token} is not a valid symbol."
                 )
 
-            new_operator = Symbol(self.current_token.token, SymbolType.OPERATOR, 2)
+            new_operator = Symbol(
+                self.context.current_token.token, SymbolType.OPERATOR, 2
+            )
             if (
-                self.current_token.token == "-" or self.current_token.token == "+"
+                self.context.current_token.token == "-"
+                or self.context.current_token.token == "+"
             ) and (
-                self._previous_symbol.type
+                self.context._previous_symbol.type
                 not in [
                     SymbolType.NUMBER,
                     SymbolType.PARENTHESIS_CLOSE,
                     SymbolType.SYMBOL,
                 ]
-                or self.i == 0
+                or self.context.i == 0
             ):
                 new_operator.precedence = MAX_PRECEDENCE
                 new_operator.argument_count = 1
 
             while (
-                self._holding_stack
-                and self._holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
+                self.context._holding_stack
+                and self.context._holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
             ):
-                if self._holding_stack[0].type != SymbolType.OPERATOR:
+                if self.context._holding_stack[0].type != SymbolType.OPERATOR:
                     break
 
-                if self._holding_stack[0].precedence >= new_operator.precedence:
-                    _sym = self._holding_stack.popleft()
-                    self._output_stack.append(_sym)
+                if self.context._holding_stack[0].precedence >= new_operator.precedence:
+                    _sym = self.context._holding_stack.popleft()
+                    self.context._output_stack.append(_sym)
                     continue
                 break
             _sym = Symbol(
-                self.current_token.token,
+                self.context.current_token.token,
                 SymbolType.OPERATOR,
                 new_operator.argument_count,
                 new_operator.precedence,
             )
-            self._holding_stack.appendleft(_sym)
-            self._previous_symbol = _sym
+            self.context._holding_stack.appendleft(_sym)
+            self.context._previous_symbol = _sym
             self._advance()
         self._handle_eof()
 
-        return self._output_stack
+        return self.context._output_stack
 
     def _handle_eof(self):
-        if len(self.tokens) > self.i + 1:
+        if len(self.context.tokens) > self.context.i + 1:
             raise ExpressionError(
                 f"Found more tokens, but encountered EOF {self.tokens}"
             )
-        while self._holding_stack:
-            self._output_stack.append(self._holding_stack.popleft())
+        while self.context._holding_stack:
+            self.context._output_stack.append(self.context._holding_stack.popleft())
         return
 
     def _solve_rpn(self, stack: deque[Symbol]) -> float:
@@ -238,8 +262,8 @@ class Evaluator:
                         )
                     args.append(output.popleft())
             if symbol.type == SymbolType.SYMBOL:
-                if symbol.value in self.variables and not _is_var:
-                    value = self.variables[symbol.value]
+                if symbol.value in self.context.variables and not _is_var:
+                    value = self.context.variables[symbol.value]
                     output.appendleft(value)
                     continue
                 if _variable_name and _is_var:
@@ -309,26 +333,26 @@ class Evaluator:
 
 class Strategy(ABC):
     @abstractmethod
-    def execute(self, *args: deque[Token]):
+    def execute(self, context: Context, tokens: deque[Token]):
         pass
 
 
 class NumberStrategy(Strategy):
     @override
-    def execute(self, evaluator: Evaluator):
-        _sym = Symbol(str(evaluator.current_token.value), SymbolType.NUMBER, 0)
-        evaluator._output_stack.append(_sym)
-        evaluator._previous_symbol = _sym
-        evaluator._advance()
+    def execute(self, context: Context, tokens: deque[Token]):
+        _sym = Symbol(str(context.current_token.value), SymbolType.NUMBER, 0)
+        context._output_stack.append(_sym)
+        context._previous_symbol = _sym
+        context._advance()
 
 
 class EOFStrategy(Strategy):
     @override
-    def execute(self, *args: deque[Token]):
+    def execute(self, context: Context, tokens: deque[Token]):
         return super().execute(*args)
 
 
 class OpenParenthesisStrategy(Strategy):
     @override
-    def execute(self, *args: deque[Token]):
+    def execute(self, context: Context, tokens: deque[Token]):
         return super().execute(*args)
