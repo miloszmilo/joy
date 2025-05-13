@@ -1,3 +1,4 @@
+from src.evaluator import Evaluator
 from src.joyTypes.AST_Nodes import (
     Comparison,
     Expression,
@@ -10,6 +11,7 @@ from src.joyTypes.AST_Nodes import (
     WhileStatement,
 )
 from src.joyTypes.Token import Token, TokenType
+from src.tokenizer import Tokenizer
 
 
 class Parser:
@@ -109,14 +111,21 @@ class Parser:
         return Comparison(left, operator, right)
 
     def parse_expression(self) -> Expression:
-        # raise NotImplementedError
-        # # Do RPN for this expression
-        # # Then calculate result
-        # left = self.consume(TokenType.NUMBER)
-        # operator = self.consume(TokenType.OPERATOR)
-        # right = self.consume(TokenType.NUMBER)
-        num = self.consume(TokenType.NUMBER)
-        return NumberLiteral(num.value)
+        token_list: list[Token] = []
+        cur = self.peek()
+        while cur.type in [TokenType.NUMBER, TokenType.OPERATOR]:
+            if cur.type == TokenType.NUMBER:
+                token_list.append(self.consume(TokenType.NUMBER))
+                cur = self.peek()
+                continue
+            token_list.append(self.consume(TokenType.OPERATOR))
+            cur = self.peek()
+        if cur.type != TokenType.EOF:
+            token_list.append(Token("EOF", TokenType.EOF))
+        else:
+            token_list.append(self.consume(TokenType.EOF))
+        num_value = Evaluator(token_list).solve()
+        return NumberLiteral(num_value)
 
     def match(self, type: TokenType, value: str | None = None) -> bool:
         if self.peek().type != type:
@@ -128,7 +137,7 @@ class Parser:
             return token.type == type and token.token == value
         return token.type == type
 
-    def consume(self, type: TokenType, value: str | None = None):
+    def consume(self, type: TokenType, value: str | None = None) -> Token:
         if self.peek().type != type:
             raise SyntaxError(f"Expected {type} but found {self.peek()}")
         if value and self.peek().token != value:
@@ -143,14 +152,15 @@ class Parser:
         raise SyntaxError(f"Expected {type} but found {self.peek()}")
 
     def peek(self) -> Token:
-        return self.tokens[self.current]
+        if self.current < len(self.tokens):
+            return self.tokens[self.current]
+        return self.previous()
 
     def previous(self):
         return self.tokens[self.current - 1]
 
     def advance(self):
-        if not self.is_at_end():
-            self.current += 1
+        self.current += 1
 
     def is_at_end(self) -> bool:
         return self.peek().type == TokenType.EOF

@@ -184,5 +184,5 @@ def test_parse_expression():
     )
     result = parser.parse_statement()
     assert isinstance(result, Expression)
-    expected_result = Expression("+", "2", "4")
+    expected_result = NumberLiteral(6)
     assert result == expected_result

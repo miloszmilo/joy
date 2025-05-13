@@ -107,7 +107,7 @@ class Evaluator:
             self.solve_strategies[symbol.type].execute(self, symbol)
 
         if len(self.output) != 1:
-            raise ExpressionError(f"Expression led to no result {self.output}")
+            raise ExpressionError(f"Expression led to no result {self.output} {stack}")
         if (
             len(self.output) == 1
             and self.solve_context.is_var
@@ -184,7 +184,10 @@ class EvaluatorStrategy(ABC):
 class NumberStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
-        _sym = Symbol(str(context.current_token.value), SymbolType.NUMBER, 0)
+        _sym = Symbol(
+            context.current_token.token,
+            SymbolType.NUMBER,
+        )
         context.output_stack.append(_sym)
         context.previous_symbol = _sym
         evaluator.advance()
@@ -199,7 +202,6 @@ class EOFStrategy(EvaluatorStrategy):
             )
         while context.holding_stack:
             context.output_stack.append(context.holding_stack.popleft())
-        return
 
 
 class OpenParenthesisStrategy(EvaluatorStrategy):
@@ -209,7 +211,6 @@ class OpenParenthesisStrategy(EvaluatorStrategy):
         context.holding_stack.appendleft(_sym)
         context.previous_symbol = _sym
         evaluator.advance()
-        return
 
 
 class CloseParenthesisStrategy(EvaluatorStrategy):
@@ -229,7 +230,6 @@ class CloseParenthesisStrategy(EvaluatorStrategy):
             _ = context.holding_stack.popleft()
         context.previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
         evaluator.advance()
-        return
 
 
 class SymbolStrategy(EvaluatorStrategy):
@@ -241,7 +241,6 @@ class SymbolStrategy(EvaluatorStrategy):
         context.output_stack.append(_sym)
         context.previous_symbol = _sym
         evaluator.advance()
-        return
 
 
 class KeywordStrategy(EvaluatorStrategy):
@@ -269,7 +268,7 @@ class OperatorStrategy(EvaluatorStrategy):
 
         if context.current_token.token == "=":
             raise ExpressionError(
-                f"Got equals without symbol name {context.previous_symbol.__repr__()}."
+                f"Got equals without symbol name {context.previous_symbol}."
             )
 
         new_operator = Symbol(context.current_token.token, SymbolType.OPERATOR, 2)
