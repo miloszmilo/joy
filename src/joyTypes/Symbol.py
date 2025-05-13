@@ -15,14 +15,14 @@ class SymbolType(Enum):
 
 class Symbol:
     value: str
-    type: SymbolType | None
+    type: SymbolType
     argument_count: int
     precedence: int
 
     def __init__(
         self,
         value: str = "",
-        type: SymbolType | None = SymbolType.UNKNOWN,
+        type: SymbolType = SymbolType.UNKNOWN,
         argument_count: int = 2,
         precedence: int = -1,
     ) -> None:
