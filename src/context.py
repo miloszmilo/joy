@@ -11,6 +11,12 @@ class Context:
     tokens: list[Token]
     i: int
     current_token: Token
-    _holding_stack: deque[Symbol]
-    _output_stack: deque[Symbol]
-    _previous_symbol: Symbol
+    holding_stack: deque[Symbol]
+    output_stack: deque[Symbol]
+    previous_symbol: Symbol
+
+@dataclass
+class SolveContext:
+    is_var: bool
+    variable_name: str | None
+    is_assignment: bool

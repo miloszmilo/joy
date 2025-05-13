@@ -4,13 +4,12 @@ from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable, override
 
-from src.context import Context
+from src.context import Context, SolveContext
 from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.Symbol import (
     Symbol,
     SymbolType,
     binary_operators,
-    keywords,
     unary_operators,
 )
 from src.joyTypes.Token import Token, TokenType
@@ -20,7 +19,9 @@ MAX_PRECEDENCE = 100
 
 class Evaluator:
     strategies: dict[TokenType, Strategy]
-    context: Context
+    rpn_context: Context
+    solve_context: SolveContext
+    output: deque[float]
 
     operations: dict[str, Callable[[float, float], float]] = {
         "!=": lambda x, y: int(x != y),
@@ -47,7 +48,7 @@ class Evaluator:
         variables: dict[str, float] | None = None,
     ):
         self.strategies = {}
-        self.context = Context(
+        self.rpn_context = Context(
             operator_stack if operator_stack else [],
             variables if variables else {},
             tokens,
@@ -57,15 +58,17 @@ class Evaluator:
             deque(),
             Symbol("0", SymbolType.NUMBER, 0),
         )
+        self.solve_context = SolveContext(False, None, False)
+        self.output = deque()
 
     def _peek(self) -> Token:
-        return self.context.tokens[self.context.i]
+        return self.rpn_context.tokens[self.rpn_context.i]
 
-    def _advance(self):
-        if self.context.i + 1 >= len(self.context.tokens):
+    def advance(self):
+        if self.rpn_context.i + 1 >= len(self.rpn_context.tokens):
             return
-        self.context.i += 1
-        self.context.current_token = self.context.tokens[self.context.i]
+        self.rpn_context.i += 1
+        self.rpn_context.current_token = self.rpn_context.tokens[self.rpn_context.i]
 
     def _match(self, type: TokenType, token: str | None = "") -> bool:
         cur = self._peek()
@@ -84,94 +87,97 @@ class Evaluator:
             TokenType.OPERATOR: OperatorStrategy(),
             TokenType.COMMA: CommaStrategy(),
         }
-        for t in self.context.tokens:
-            self.strategies[t.type].execute(self.context, self)
-        return self.context._output_stack
-
-    def _handle_eof(self):
-        if len(self.context.tokens) > self.context.i + 1:
-            raise ExpressionError(
-                f"Found more tokens, but encountered EOF {self.context.tokens}"
-            )
-        while self.context._holding_stack:
-            self.context._output_stack.append(self.context._holding_stack.popleft())
-        return
+        for t in self.rpn_context.tokens:
+            self.strategies[t.type].execute(self.rpn_context, self)
+        return self.rpn_context.output_stack
 
     def _solve_rpn(self, stack: deque[Symbol]) -> float:
-        output: deque[float] = deque()
-        _is_var = False
-        _variable_name = None
-        _is_assignment = False
-
         for symbol in stack:
+            # Also a strategy pattern
             args: list[float] = []
             if symbol.type == SymbolType.KEYWORD:
                 if symbol.value == "var":
-                    _is_var = True
+                    self.solve_context.is_var = True
                 continue
             if symbol.type == SymbolType.NUMBER:
-                output.appendleft(float(symbol.value))
+                self.output.appendleft(float(symbol.value))
                 continue
             if symbol.type == SymbolType.OPERATOR:
                 if symbol.value == "=":
-                    _is_assignment = True
+                    self.solve_context.is_assignment = True
                     continue
                 args = []
                 for _ in range(symbol.argument_count):
-                    if not output:
+                    if not self.output:
                         raise ExpressionError(
-                            f"Expression invalid, expected {symbol.argument_count} got {len(output)}, left {symbol.argument_count - len(args)} {symbol}"
+                            f"Expression invalid, expected {symbol.argument_count} got {len(self.output)}, left {symbol.argument_count - len(args)} {symbol}"
                         )
-                    args.append(output.popleft())
+                    args.append(self.output.popleft())
             if symbol.type == SymbolType.SYMBOL:
-                if symbol.value in self.context.variables and not _is_var:
-                    value = self.context.variables[symbol.value]
-                    output.appendleft(value)
+                if (
+                    symbol.value in self.rpn_context.variables
+                    and not self.solve_context.is_var
+                ):
+                    value = self.rpn_context.variables[symbol.value]
+                    self.output.appendleft(value)
                     continue
-                if _variable_name and _is_var:
+                if self.solve_context.variable_name and self.solve_context.is_var:
                     raise ExpressionError(
                         f"Got two variable names in assignment {symbol}"
                     )
                 _variable_name = symbol.value
                 continue
 
-            result: float = 0
-            match symbol.argument_count:
-                case 2:
-                    if symbol.value not in binary_operators:
-                        raise ExpressionError(
-                            f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
-                        )
-                    if symbol.value == "(":
-                        continue
-                    if symbol.value in self.operations:
-                        result = self.operations[symbol.value](args[1], args[0])
-                case 1:
-                    if symbol.value not in unary_operators.keys():
-                        raise ExpressionError(
-                            f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
-                        )
-                    if symbol.value in self.unary_operations:
-                        result = self.unary_operations[symbol.value](args[0])
-                case 0:
-                    if symbol.value == "var":
-                        _is_var = True
-                        continue
-                    if symbol.value == "=":
-                        _is_assignment = True
-                        continue
-                case _:
-                    raise ExpressionError(
-                        f"Symbol {symbol} expected {symbol.argument_count}"
-                    )
-            output.appendleft(result)
+            self._handle_argument_count(symbol, args)
 
-        if len(output) != 1:
-            raise ExpressionError(f"Expression led to no result {output}")
-        if len(output) == 1 and _is_var and _variable_name and _is_assignment:
-            self.context.variables[_variable_name] = output.popleft()
-            return self.context.variables[_variable_name]
-        return output.popleft()
+        if len(self.output) != 1:
+            raise ExpressionError(f"Expression led to no result {self.output}")
+        if (
+            len(self.output) == 1
+            and self.solve_context.is_var
+            and self.solve_context.variable_name
+            and self.solve_context.is_assignment
+        ):
+            self.rpn_context.variables[self.solve_context.variable_name] = (
+                self.output.popleft()
+            )
+            return self.rpn_context.variables[self.solve_context.variable_name]
+        return self.output.popleft()
+
+    def _handle_argument_count(self, symbol: Symbol, args: list[float]) -> None:
+        result: float = 0
+        match symbol.argument_count:
+            case 2:
+                if symbol.value not in binary_operators:
+                    raise ExpressionError(
+                        f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
+                    )
+                if symbol.value == "(":
+                    self.advance()
+                    return
+                if symbol.value in self.operations:
+                    result = self.operations[symbol.value](args[1], args[0])
+            case 1:
+                if symbol.value not in unary_operators.keys():
+                    raise ExpressionError(
+                        f"Unknown operator '{symbol.value}' for {symbol.argument_count}"
+                    )
+                if symbol.value in self.unary_operations:
+                    result = self.unary_operations[symbol.value](args[0])
+            case 0:
+                if symbol.value == "var":
+                    self.solve_context.is_var = True
+                    self.advance()
+                    return
+                if symbol.value == "=":
+                    self.solve_context.is_assignment = True
+                    self.advance()
+                    return
+            case _:
+                raise ExpressionError(
+                    f"Symbol {symbol} expected {symbol.argument_count}"
+                )
+        self.output.appendleft(result)
 
     def solve(self) -> float:
         rpn = self.evaluate_tokens()
@@ -180,17 +186,17 @@ class Evaluator:
 
     @override
     def __str__(self) -> str:
-        return f"Evaulator's operator stack: {self.context.operator_stack}"
+        return f"Evaulator's operator stack: {self.rpn_context.operator_stack}"
 
     @override
     def __eq__(self, value: object, /) -> bool:
         if isinstance(value, Evaluator):
-            return self.context.operator_stack == value.context.operator_stack
+            return self.rpn_context.operator_stack == value.rpn_context.operator_stack
         return False
 
     @override
     def __repr__(self) -> str:
-        return f"Evaluator({self.context.operator_stack})"
+        return f"Evaluator({self.rpn_context.operator_stack})"
 
 
 class Strategy(ABC):
@@ -203,9 +209,9 @@ class NumberStrategy(Strategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         _sym = Symbol(str(context.current_token.value), SymbolType.NUMBER, 0)
-        context._output_stack.append(_sym)
-        context._previous_symbol = _sym
-        evaluator._advance()
+        context.output_stack.append(_sym)
+        context.previous_symbol = _sym
+        evaluator.advance()
 
 
 class EOFStrategy(Strategy):
@@ -215,8 +221,8 @@ class EOFStrategy(Strategy):
             raise ExpressionError(
                 f"Found more tokens, but encountered EOF {context.tokens}"
             )
-        while context._holding_stack:
-            context._output_stack.append(context._holding_stack.popleft())
+        while context.holding_stack:
+            context.output_stack.append(context.holding_stack.popleft())
         return
 
 
@@ -224,9 +230,9 @@ class OpenParenthesisStrategy(Strategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         _sym = Symbol(context.current_token.token, SymbolType.PARENTHESIS_OPEN, 0)
-        context._holding_stack.appendleft(_sym)
-        context._previous_symbol = _sym
-        evaluator._advance()
+        context.holding_stack.appendleft(_sym)
+        context.previous_symbol = _sym
+        evaluator.advance()
         return
 
 
@@ -234,19 +240,19 @@ class CloseParenthesisStrategy(Strategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         while (
-            context._holding_stack
-            and context._holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
+            context.holding_stack
+            and context.holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
         ):
-            context._output_stack.append(context._holding_stack.popleft())
-        if not context._holding_stack:
+            context.output_stack.append(context.holding_stack.popleft())
+        if not context.holding_stack:
             raise ExpressionError("Parenthesis missmatched")
         if (
-            context._holding_stack
-            and context._holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
+            context.holding_stack
+            and context.holding_stack[0].type is SymbolType.PARENTHESIS_OPEN
         ):
-            _ = context._holding_stack.popleft()
-        context._previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
-        evaluator._advance()
+            _ = context.holding_stack.popleft()
+        context.previous_symbol = Symbol(")", SymbolType.PARENTHESIS_CLOSE, 0)
+        evaluator.advance()
         return
 
 
@@ -256,9 +262,9 @@ class SymbolStrategy(Strategy):
         if context.current_token.token not in context.variables:
             context.variables[context.current_token.token] = 0.0
         _sym = Symbol(str(context.current_token.token), SymbolType.SYMBOL, 0)
-        context._output_stack.append(_sym)
-        context._previous_symbol = _sym
-        evaluator._advance()
+        context.output_stack.append(_sym)
+        context.previous_symbol = _sym
+        evaluator.advance()
         return
 
 
@@ -266,9 +272,9 @@ class KeywordStrategy(Strategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         _sym = Symbol(str(context.current_token.token), SymbolType.KEYWORD, 0)
-        context._output_stack.append(_sym)
-        context._previous_symbol = _sym
-        evaluator._advance()
+        context.output_stack.append(_sym)
+        context.previous_symbol = _sym
+        evaluator.advance()
         return
 
 
@@ -277,24 +283,24 @@ class OperatorStrategy(Strategy):
     def execute(self, context: Context, evaluator: Evaluator):
         if (
             context.current_token.token == "="
-            and context._previous_symbol.type == SymbolType.SYMBOL
+            and context.previous_symbol.type == SymbolType.SYMBOL
         ):
             _sym = Symbol(str(context.current_token.token), SymbolType.ASSIGNMENT, 0)
-            context._holding_stack.append(_sym)
-            context._previous_symbol = _sym
-            evaluator._advance()
+            context.holding_stack.append(_sym)
+            context.previous_symbol = _sym
+            evaluator.advance()
             return
 
         if context.current_token.token == "=":
             raise ExpressionError(
-                f"Got equals without symbol name {context._previous_symbol.__repr__()}."
+                f"Got equals without symbol name {context.previous_symbol.__repr__()}."
             )
 
         new_operator = Symbol(context.current_token.token, SymbolType.OPERATOR, 2)
         if (
             context.current_token.token == "-" or context.current_token.token == "+"
         ) and (
-            context._previous_symbol.type
+            context.previous_symbol.type
             not in [
                 SymbolType.NUMBER,
                 SymbolType.PARENTHESIS_CLOSE,
@@ -306,15 +312,15 @@ class OperatorStrategy(Strategy):
             new_operator.argument_count = 1
 
         while (
-            context._holding_stack
-            and context._holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
+            context.holding_stack
+            and context.holding_stack[0].type != SymbolType.PARENTHESIS_OPEN
         ):
-            if context._holding_stack[0].type != SymbolType.OPERATOR:
+            if context.holding_stack[0].type != SymbolType.OPERATOR:
                 break
 
-            if context._holding_stack[0].precedence >= new_operator.precedence:
-                _sym = context._holding_stack.popleft()
-                context._output_stack.append(_sym)
+            if context.holding_stack[0].precedence >= new_operator.precedence:
+                _sym = context.holding_stack.popleft()
+                context.output_stack.append(_sym)
                 continue
             break
         _sym = Symbol(
@@ -323,9 +329,9 @@ class OperatorStrategy(Strategy):
             new_operator.argument_count,
             new_operator.precedence,
         )
-        context._holding_stack.appendleft(_sym)
-        context._previous_symbol = _sym
-        evaluator._advance()
+        context.holding_stack.appendleft(_sym)
+        context.previous_symbol = _sym
+        evaluator.advance()
 
 
 class CommaStrategy(Strategy):
