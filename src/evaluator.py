@@ -18,10 +18,12 @@ MAX_PRECEDENCE = 100
 
 
 class Evaluator:
-    strategies: dict[TokenType, Strategy]
+    strategies: dict[TokenType, EvaluatorStrategy]
+    solve_strategies: dict[SymbolType, SolverStrategy]
     rpn_context: Context
     solve_context: SolveContext
     output: deque[float]
+    args: list[float]
 
     operations: dict[str, Callable[[float, float], float]] = {
         "!=": lambda x, y: int(x != y),
@@ -48,6 +50,7 @@ class Evaluator:
         variables: dict[str, float] | None = None,
     ):
         self.strategies = {}
+        self.solve_strategies = {}
         self.rpn_context = Context(
             operator_stack if operator_stack else [],
             variables if variables else {},
@@ -60,6 +63,7 @@ class Evaluator:
         )
         self.solve_context = SolveContext(False, None, False)
         self.output = deque()
+        self.args = []
 
     def _peek(self) -> Token:
         return self.rpn_context.tokens[self.rpn_context.i]
@@ -92,43 +96,15 @@ class Evaluator:
         return self.rpn_context.output_stack
 
     def _solve_rpn(self, stack: deque[Symbol]) -> float:
+        self.solve_strategies = {
+            SymbolType.KEYWORD: SolveKeywordStrategy(),
+            SymbolType.NUMBER: SolveNumberStrategy(),
+            SymbolType.OPERATOR: SolveOperatorStrategy(),
+            SymbolType.SYMBOL: SolveSymbolStrategy(),
+        }
         for symbol in stack:
-            # Also a strategy pattern
-            args: list[float] = []
-            if symbol.type == SymbolType.KEYWORD:
-                if symbol.value == "var":
-                    self.solve_context.is_var = True
-                continue
-            if symbol.type == SymbolType.NUMBER:
-                self.output.appendleft(float(symbol.value))
-                continue
-            if symbol.type == SymbolType.OPERATOR:
-                if symbol.value == "=":
-                    self.solve_context.is_assignment = True
-                    continue
-                args = []
-                for _ in range(symbol.argument_count):
-                    if not self.output:
-                        raise ExpressionError(
-                            f"Expression invalid, expected {symbol.argument_count} got {len(self.output)}, left {symbol.argument_count - len(args)} {symbol}"
-                        )
-                    args.append(self.output.popleft())
-            if symbol.type == SymbolType.SYMBOL:
-                if (
-                    symbol.value in self.rpn_context.variables
-                    and not self.solve_context.is_var
-                ):
-                    value = self.rpn_context.variables[symbol.value]
-                    self.output.appendleft(value)
-                    continue
-                if self.solve_context.variable_name and self.solve_context.is_var:
-                    raise ExpressionError(
-                        f"Got two variable names in assignment {symbol}"
-                    )
-                _variable_name = symbol.value
-                continue
-
-            self._handle_argument_count(symbol, args)
+            self.args = []
+            self.solve_strategies[symbol.type].execute(self, symbol)
 
         if len(self.output) != 1:
             raise ExpressionError(f"Expression led to no result {self.output}")
@@ -144,7 +120,7 @@ class Evaluator:
             return self.rpn_context.variables[self.solve_context.variable_name]
         return self.output.popleft()
 
-    def _handle_argument_count(self, symbol: Symbol, args: list[float]) -> None:
+    def handle_argument_count(self, symbol: Symbol, args: list[float]) -> None:
         result: float = 0
         match symbol.argument_count:
             case 2:
@@ -199,13 +175,13 @@ class Evaluator:
         return f"Evaluator({self.rpn_context.operator_stack})"
 
 
-class Strategy(ABC):
+class EvaluatorStrategy(ABC):
     @abstractmethod
     def execute(self, context: Context, evaluator: Evaluator):
         pass
 
 
-class NumberStrategy(Strategy):
+class NumberStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         _sym = Symbol(str(context.current_token.value), SymbolType.NUMBER, 0)
@@ -214,7 +190,7 @@ class NumberStrategy(Strategy):
         evaluator.advance()
 
 
-class EOFStrategy(Strategy):
+class EOFStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         if len(context.tokens) > context.i + 1:
@@ -226,7 +202,7 @@ class EOFStrategy(Strategy):
         return
 
 
-class OpenParenthesisStrategy(Strategy):
+class OpenParenthesisStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         _sym = Symbol(context.current_token.token, SymbolType.PARENTHESIS_OPEN, 0)
@@ -236,7 +212,7 @@ class OpenParenthesisStrategy(Strategy):
         return
 
 
-class CloseParenthesisStrategy(Strategy):
+class CloseParenthesisStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         while (
@@ -256,7 +232,7 @@ class CloseParenthesisStrategy(Strategy):
         return
 
 
-class SymbolStrategy(Strategy):
+class SymbolStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         if context.current_token.token not in context.variables:
@@ -268,7 +244,7 @@ class SymbolStrategy(Strategy):
         return
 
 
-class KeywordStrategy(Strategy):
+class KeywordStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         _sym = Symbol(str(context.current_token.token), SymbolType.KEYWORD, 0)
@@ -278,7 +254,7 @@ class KeywordStrategy(Strategy):
         return
 
 
-class OperatorStrategy(Strategy):
+class OperatorStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         if (
@@ -334,7 +310,56 @@ class OperatorStrategy(Strategy):
         evaluator.advance()
 
 
-class CommaStrategy(Strategy):
+class CommaStrategy(EvaluatorStrategy):
     @override
     def execute(self, context: Context, evaluator: Evaluator):
         raise ExpressionError(f"Unexpected comma {context}")
+
+
+class SolverStrategy(ABC):
+    @abstractmethod
+    def execute(self, evaluator: Evaluator, symbol: Symbol):
+        pass
+
+
+class SolveKeywordStrategy(SolverStrategy):
+    @override
+    def execute(self, evaluator: Evaluator, symbol: Symbol):
+        if symbol.value == "var":
+            evaluator.solve_context.is_var = True
+
+
+class SolveNumberStrategy(SolverStrategy):
+    @override
+    def execute(self, evaluator: Evaluator, symbol: Symbol):
+        evaluator.output.appendleft(float(symbol.value))
+
+
+class SolveOperatorStrategy(SolverStrategy):
+    @override
+    def execute(self, evaluator: Evaluator, symbol: Symbol):
+        if symbol.value == "=":
+            evaluator.solve_context.is_assignment = True
+            return
+        for _ in range(symbol.argument_count):
+            if not evaluator.output:
+                raise ExpressionError(
+                    f"Expression invalid, expected {symbol.argument_count} got {len(evaluator.output)}, left {symbol.argument_count - len(evaluator.args)} {symbol}"
+                )
+            evaluator.args.append(evaluator.output.popleft())
+        evaluator.handle_argument_count(symbol, evaluator.args)
+
+
+class SolveSymbolStrategy(SolverStrategy):
+    @override
+    def execute(self, evaluator: Evaluator, symbol: Symbol):
+        if (
+            symbol.value in evaluator.rpn_context.variables
+            and not evaluator.solve_context.is_var
+        ):
+            value = evaluator.rpn_context.variables[symbol.value]
+            evaluator.output.appendleft(value)
+            return
+        if evaluator.solve_context.variable_name and evaluator.solve_context.is_var:
+            raise ExpressionError(f"Got two variable names in assignment {symbol}")
+        evaluator.solve_context.variable_name = symbol.value
