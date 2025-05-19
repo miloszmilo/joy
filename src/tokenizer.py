@@ -126,6 +126,27 @@ class Tokenizer:
         self.output.append(Token("EOF", TokenType.EOF))
         return self.output
 
+    def tokenize_multiple_lines(self, string_list: list[str]) -> list[Token]:
+        for string in string_list:
+            self._string = string + " "
+            self.char = self._string[self._i]
+            while self._i in range(len(self._string)):
+                self.current_state.handle(self)
+                if self.next_state:
+                    self.current_state = self.next_state
+            if self.parenthesis_balance != 0:
+                raise TokenizerValueError(
+                    f'Parenthesis "(" & ")" not balanced. Expected {self.parenthesis_balance} more'
+                )
+            if self.scope_balance != 0:
+                raise TokenizerValueError(
+                    f'Scope "{{" & "}}" not balanced. Expected {self.scope_balance} more.'
+                )
+            if isinstance(self.current_state, StringState):
+                raise TokenizerValueError("Missing quotation marks.")
+        self.output.append(Token("EOF", TokenType.EOF))
+        return self.output
+
 
 class NewTokenState(TokenizerStateBase):
     @override

@@ -1,6 +1,7 @@
 from src.evaluator import Evaluator
 from src.joyTypes.AST_Nodes import (
     Comparison,
+    EndOfStatement,
     Expression,
     IfStatement,
     Node,
@@ -22,10 +23,10 @@ class Parser:
         self.tokens = tokens if tokens else []
 
     def parse(self):
-        statements = []
+        statements: list[Node] = []
         while self.current < len(self.tokens):
             statements.append(self.parse_statement())
-        return
+        return statements
 
     def parse_statement(self) -> Node:
         if self.match(TokenType.KEYWORD, "if"):
@@ -38,6 +39,12 @@ class Parser:
             return self.parse_var_statement()
         if self.match(TokenType.OPERATOR, "{"):
             return self.parse_scope_statement()
+        if self.match(TokenType.END_OF_STATEMENT, ";"):
+            self.advance()
+            return EndOfStatement()
+        if self.match(TokenType.EOF, "EOF"):
+            self.advance()
+            return
         return self.parse_expression()
 
     def parse_if_statement(self) -> IfStatement:

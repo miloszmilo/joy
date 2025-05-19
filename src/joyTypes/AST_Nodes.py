@@ -115,3 +115,10 @@ class ScopeStatement(Statement):
     @override
     def accept(self, visitor):
         return super().accept(visitor)
+
+@dataclass
+class EndOfStatement(Statement):
+
+    @override
+    def accept(self, visitor):
+        return
