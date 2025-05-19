@@ -331,7 +331,15 @@ class SolveKeywordStrategy(SolverStrategy):
 class SolveNumberStrategy(SolverStrategy):
     @override
     def execute(self, evaluator: Evaluator, symbol: Symbol):
-        evaluator.output.appendleft(float(symbol.value))
+        value: float = 0.0
+        try:
+            value = float(symbol.value)
+        except Exception as e:
+            if symbol.value.startswith('0x'):
+                value = float(int(symbol.value, 16))
+            if symbol.value.startswith('0b'):
+                value = float(int(symbol.value, 2))
+        evaluator.output.appendleft(value)
 
 
 class SolveOperatorStrategy(SolverStrategy):

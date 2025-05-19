@@ -19,12 +19,12 @@ def test_rpn_notation():
 
     expected_result = deque(
         [
-            Symbol("1.0", SymbolType.NUMBER, 0),
-            Symbol("2.0", SymbolType.NUMBER, 0),
-            Symbol("4.0", SymbolType.NUMBER, 0),
+            Symbol("1", SymbolType.NUMBER, 0),
+            Symbol("2", SymbolType.NUMBER, 0),
+            Symbol("4", SymbolType.NUMBER, 0),
             Symbol("*", SymbolType.OPERATOR),
             Symbol("+", SymbolType.OPERATOR),
-            Symbol("3.0", SymbolType.NUMBER, 0),
+            Symbol("3", SymbolType.NUMBER, 0),
             Symbol("-", SymbolType.OPERATOR),
         ]
     )
@@ -110,13 +110,13 @@ def test_negative_numbers():
 
     expected_rpn = deque(
         [
-            Symbol("1.0", SymbolType.NUMBER, 0),
-            Symbol("2.0", SymbolType.NUMBER, 0),
-            Symbol("4.0", SymbolType.NUMBER, 0),
+            Symbol("1", SymbolType.NUMBER, 0),
+            Symbol("2", SymbolType.NUMBER, 0),
+            Symbol("4", SymbolType.NUMBER, 0),
             Symbol("-", SymbolType.OPERATOR, 1, MAX_PRECEDENCE),
             Symbol("*", SymbolType.OPERATOR),
             Symbol("+", SymbolType.OPERATOR),
-            Symbol("3.0", SymbolType.NUMBER, 0),
+            Symbol("3", SymbolType.NUMBER, 0),
             Symbol("-", SymbolType.OPERATOR),
         ]
     )
@@ -169,12 +169,12 @@ def test_rpn_notation_tokens():
 
     expected_result = deque(
         [
-            Symbol("1.0", SymbolType.NUMBER, 0),
-            Symbol("2.0", SymbolType.NUMBER, 0),
-            Symbol("4.0", SymbolType.NUMBER, 0),
+            Symbol("1", SymbolType.NUMBER, 0),
+            Symbol("2", SymbolType.NUMBER, 0),
+            Symbol("4", SymbolType.NUMBER, 0),
             Symbol("*", SymbolType.OPERATOR),
             Symbol("+", SymbolType.OPERATOR),
-            Symbol("3.0", SymbolType.NUMBER, 0),
+            Symbol("3", SymbolType.NUMBER, 0),
             Symbol("-", SymbolType.OPERATOR),
         ]
     )
@@ -196,7 +196,7 @@ def test_rpn_notation_complex():
 
 
 def test_functions_fail():
-    expr = "f(1,2)"
+    expr = "func (1,2) {}"
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(expr)
     eval = Evaluator(tokens)

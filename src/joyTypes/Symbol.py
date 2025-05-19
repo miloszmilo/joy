@@ -28,7 +28,7 @@ class Symbol:
     ) -> None:
         self.value = value
         self.type = type
-        self.argument_count = argument_count
+        self.argument_count = argument_count if type == SymbolType.OPERATOR else 0
         _precedence = precedence
         if precedence == -1:
             _precedence = binary_operators.get(value, -1)

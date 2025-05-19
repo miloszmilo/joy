@@ -11,7 +11,6 @@ from src.joyTypes.AST_Nodes import (
     WhileStatement,
 )
 from src.joyTypes.Token import Token, TokenType
-from src.tokenizer import Tokenizer
 
 
 class Parser:
