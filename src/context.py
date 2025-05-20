@@ -15,8 +15,14 @@ class Context:
     output_stack: deque[Symbol]
     previous_symbol: Symbol
 
+
 @dataclass
 class SolveContext:
     is_var: bool
     variable_name: str | None
     is_assignment: bool
+
+
+@dataclass
+class InterpreterContext:
+    variables: dict[str, float]
