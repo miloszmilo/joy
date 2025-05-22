@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import override
 
-from src.joyTypes.Token import Token
+from src.joyTypes.Token import Token, TokenType
 
 
 class Node(ABC):
@@ -57,6 +57,16 @@ class VariableAccess(Expression):
 
 
 @dataclass
+class VariableAssignment(Expression):
+    name: str
+    value: NumberLiteral
+
+    @override
+    def accept(self, visitor):
+        return visitor.visit_variable_assignment(self)
+
+
+@dataclass
 class VariableDeclaration(Expression):
     name: str
     value: NumberLiteral
@@ -75,6 +85,22 @@ class Comparison(Expression):
     @override
     def accept(self, visitor):
         return visitor.visit_variable_access(self)
+
+
+@dataclass
+class MathExpression(Expression):
+    left: Node
+    right: Node
+    operation: Token | None
+
+    def __init__(self, left: Node, right: Node, operation: Token | None) -> None:
+        self.left = left
+        self.right = right
+        self.operation = operation if operation else Token("=", TokenType.OPERATOR)
+
+    @override
+    def accept(self, visitor):
+        return super().accept(visitor)
 
 
 # Statements
@@ -116,9 +142,9 @@ class ScopeStatement(Statement):
     def accept(self, visitor):
         return super().accept(visitor)
 
+
 @dataclass
 class EndOfStatement(Statement):
-
     @override
     def accept(self, visitor):
         return

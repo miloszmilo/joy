@@ -5,7 +5,7 @@ from src.joyTypes.Token import Token
 
 
 @dataclass
-class Context:
+class EvaluatorContext:
     operator_stack: list[Token]
     variables: dict[str, float]
     tokens: list[Token]

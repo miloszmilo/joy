@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from typing import Callable, override
 
-from src.context import Context, SolveContext
+from src.context import EvaluatorContext, SolveContext
 from src.exceptions.ExpressionError import ExpressionError
 from src.joyTypes.Symbol import (
     Symbol,
@@ -20,7 +20,7 @@ MAX_PRECEDENCE = 100
 class Evaluator:
     strategies: dict[TokenType, EvaluatorStrategy]
     solve_strategies: dict[SymbolType, SolverStrategy]
-    rpn_context: Context
+    rpn_context: EvaluatorContext
     solve_context: SolveContext
     output: deque[float]
     args: list[float]
@@ -51,7 +51,7 @@ class Evaluator:
     ):
         self.strategies = {}
         self.solve_strategies = {}
-        self.rpn_context = Context(
+        self.rpn_context = EvaluatorContext(
             operator_stack if operator_stack else [],
             variables if variables else {},
             tokens,
@@ -177,13 +177,13 @@ class Evaluator:
 
 class EvaluatorStrategy(ABC):
     @abstractmethod
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         pass
 
 
 class NumberStrategy(EvaluatorStrategy):
     @override
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         _sym = Symbol(
             context.current_token.token,
             SymbolType.NUMBER,
@@ -195,7 +195,7 @@ class NumberStrategy(EvaluatorStrategy):
 
 class EOFStrategy(EvaluatorStrategy):
     @override
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         if len(context.tokens) > context.i + 1:
             raise ExpressionError(
                 f"Found more tokens, but encountered EOF {context.tokens}"
@@ -206,7 +206,7 @@ class EOFStrategy(EvaluatorStrategy):
 
 class OpenParenthesisStrategy(EvaluatorStrategy):
     @override
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         _sym = Symbol(context.current_token.token, SymbolType.PARENTHESIS_OPEN, 0)
         context.holding_stack.appendleft(_sym)
         context.previous_symbol = _sym
@@ -215,7 +215,7 @@ class OpenParenthesisStrategy(EvaluatorStrategy):
 
 class CloseParenthesisStrategy(EvaluatorStrategy):
     @override
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         while (
             context.holding_stack
             and context.holding_stack[0].type is not SymbolType.PARENTHESIS_OPEN
@@ -234,7 +234,7 @@ class CloseParenthesisStrategy(EvaluatorStrategy):
 
 class SymbolStrategy(EvaluatorStrategy):
     @override
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         if context.current_token.token not in context.variables:
             context.variables[context.current_token.token] = 0.0
         _sym = Symbol(str(context.current_token.token), SymbolType.SYMBOL, 0)
@@ -245,7 +245,7 @@ class SymbolStrategy(EvaluatorStrategy):
 
 class KeywordStrategy(EvaluatorStrategy):
     @override
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         _sym = Symbol(str(context.current_token.token), SymbolType.KEYWORD, 0)
         context.output_stack.append(_sym)
         context.previous_symbol = _sym
@@ -255,7 +255,7 @@ class KeywordStrategy(EvaluatorStrategy):
 
 class OperatorStrategy(EvaluatorStrategy):
     @override
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         if (
             context.current_token.token == "="
             and context.previous_symbol.type == SymbolType.SYMBOL
@@ -311,7 +311,7 @@ class OperatorStrategy(EvaluatorStrategy):
 
 class CommaStrategy(EvaluatorStrategy):
     @override
-    def execute(self, context: Context, evaluator: Evaluator):
+    def execute(self, context: EvaluatorContext, evaluator: Evaluator):
         raise ExpressionError(f"Unexpected comma {context}")
 
 
@@ -335,9 +335,9 @@ class SolveNumberStrategy(SolverStrategy):
         try:
             value = float(symbol.value)
         except Exception as e:
-            if symbol.value.startswith('0x'):
+            if symbol.value.startswith("0x"):
                 value = float(int(symbol.value, 16))
-            if symbol.value.startswith('0b'):
+            if symbol.value.startswith("0b"):
                 value = float(int(symbol.value, 2))
         evaluator.output.appendleft(value)
 

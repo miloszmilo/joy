@@ -1,13 +1,18 @@
+from collections import deque
+from src.context import EvaluatorContext
 from src.interpreter import Interpreter, check_condition
 from src.joyTypes.AST_Nodes import (
     Comparison,
     EmptyExpression,
-    Expression,
     IfStatement,
+    MathExpression,
+    NumberLiteral,
     PrintStatement,
     VariableAccess,
+    VariableAssignment,
     WhileStatement,
 )
+from src.joyTypes.Symbol import Symbol, SymbolType
 from src.joyTypes.Token import Token, TokenType
 
 
@@ -21,7 +26,7 @@ def test_condition():
         EmptyExpression(),
         EmptyExpression(),
     )
-    assert check_condition(node) == True
+    assert check_condition(node)
 
 
 def test_condition_false():
@@ -34,7 +39,7 @@ def test_condition_false():
         EmptyExpression(),
         EmptyExpression(),
     )
-    assert check_condition(node) == False
+    assert not check_condition(node)
 
 
 def test_condition_equals():
@@ -47,7 +52,7 @@ def test_condition_equals():
         EmptyExpression(),
         EmptyExpression(),
     )
-    assert check_condition(node) == False
+    assert not check_condition(node)
 
 
 def test_condition_greater_equal():
@@ -60,7 +65,7 @@ def test_condition_greater_equal():
         EmptyExpression(),
         EmptyExpression(),
     )
-    assert check_condition(node) == False
+    assert not check_condition(node)
 
 
 def test_condition_less_equal():
@@ -73,7 +78,7 @@ def test_condition_less_equal():
         EmptyExpression(),
         EmptyExpression(),
     )
-    assert check_condition(node) == True
+    assert check_condition(node)
 
 
 def test_condition_body():
@@ -88,7 +93,7 @@ def test_condition_body():
     )
     interpreter = Interpreter()
     interpreter.visit_node(node)
-    assert check_condition(node) == True
+    assert check_condition(node)
 
 
 def test_condition_else_body():
@@ -103,15 +108,39 @@ def test_condition_else_body():
     )
     interpreter = Interpreter()
     interpreter.visit_node(node)
-    assert check_condition(node) == False
+    assert not check_condition(node)
 
 
 def test_while_variable():
+    context = EvaluatorContext(
+        [],
+        {},
+        [],
+        0,
+        Token(),
+        deque(),
+        deque(),
+        Symbol("0", SymbolType.NUMBER, 0),
+    )
+    context.variables = {"x": 1}
     node = WhileStatement(
         Comparison(
             Token("x", TokenType.SYMBOL, 1),
-            Token(">", TokenType.COMPARISON_OPERATOR),
+            Token("<", TokenType.COMPARISON_OPERATOR),
             Token("2", TokenType.NUMBER, 2),
         ),
-        VariableAccess("x"),
+        # x = x - 1
+        # MathExpression(VariableAccess("x"), MathExpression(VariableAccess("x"), Number(1), "-"))
+        # Maybe solve it instead?
+        MathExpression(
+            VariableAssignment(
+                "x", MathExpression(VariableAccess("x"), NumberLiteral(2), Token("+"))
+            ),
+            None,
+        ),
     )
+    interpreter = Interpreter()
+    interpreter.visit_node(node)
+    assert check_condition(node)
+
+    assert context.variables["x"] == 2
