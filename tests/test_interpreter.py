@@ -1,5 +1,5 @@
 from collections import deque
-from src.context import EvaluatorContext
+from src.context import EvaluatorContext, InterpreterContext
 from src.interpreter import Interpreter, check_condition
 from src.joyTypes.AST_Nodes import (
     Comparison,
@@ -112,17 +112,9 @@ def test_condition_else_body():
 
 
 def test_while_variable():
-    context = EvaluatorContext(
-        [],
-        {},
-        [],
-        0,
-        Token(),
-        deque(),
-        deque(),
-        Symbol("0", SymbolType.NUMBER, 0),
+    context = InterpreterContext(
+        {"x": 1},
     )
-    context.variables = {"x": 1}
     node = WhileStatement(
         Comparison(
             Token("x", TokenType.SYMBOL, 1),
@@ -132,14 +124,9 @@ def test_while_variable():
         # x = x - 1
         # MathExpression(VariableAccess("x"), MathExpression(VariableAccess("x"), Number(1), "-"))
         # Maybe solve it instead?
-        MathExpression(
-            VariableAssignment(
-                "x", MathExpression(VariableAccess("x"), NumberLiteral(2), Token("+"))
-            ),
-            None,
-        ),
+        VariableAssignment("x", NumberLiteral(2)),
     )
-    interpreter = Interpreter()
+    interpreter = Interpreter(context)
     interpreter.visit_node(node)
     assert check_condition(node)
 

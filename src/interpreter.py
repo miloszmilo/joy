@@ -11,6 +11,7 @@ from src.joyTypes.AST_Nodes import (
     Node,
     PrintStatement,
     VariableAccess,
+    VariableAssignment,
     VariableDeclaration,
     WhileStatement,
 )
@@ -21,8 +22,8 @@ from src.tokenizer import Tokenizer
 class Interpreter:
     context: InterpreterContext
 
-    def __init__(self) -> None:
-        self.context = InterpreterContext({})
+    def __init__(self, context: InterpreterContext | None = None) -> None:
+        self.context = context if context else InterpreterContext({})
 
     def run(self, source_path: str):
         self.interpret(source_path)
@@ -66,6 +67,11 @@ class Interpreter:
         if isinstance(node, VariableAccess):
             # return variable value?
             pass
+        if isinstance(node, VariableAssignment):
+            name = node.name
+            value = node.value.value
+            self.context.variables[name] = value
+            return
         pass
 
     def read_source_file(self, source_path: str):
